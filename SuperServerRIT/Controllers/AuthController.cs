@@ -26,6 +26,8 @@ namespace SuperServerRIT.Controllers
             _config = config;
         }
 
+
+        //регистратион
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] UserRegistrationDto request)
         {
@@ -69,22 +71,66 @@ namespace SuperServerRIT.Controllers
 
 
         }
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto request)
+        {
+            var user = await _connection.Users.FirstOrDefaultAsync(u => u.RefreshToken == request.RefreshToken);
+
+            if (user == null || user.RefreshTokenExpiry < DateTime.UtcNow)
+            {
+                return Unauthorized(new { message = "Refresh Token недействителен" });
+            }
+
+            // Генерация нового Access Token
+            var token = GenerateJWT(user);
+            var newRefreshToken = GenerateRefreshToken();
+
+            // Обновление Refresh Token в базе данных
+            user.RefreshToken = newRefreshToken;
+            user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(30); // Устанавливаем новый срок действия
+
+            await _connection.SaveChangesAsync();
+
+            return Ok(new { token, refreshToken = newRefreshToken });
+        }
+
+        private string GenerateRefreshToken()
+        {
+            var randomNumber = new byte[32];
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(randomNumber);
+                return Convert.ToBase64String(randomNumber);
+            }
+        }
+
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] UserLoginDto request)
         {
             var user = await _connection.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Email == request.Email);
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
             {
-                return Unauthorized(new { message = "Неверный email or password:(" });
+                return Unauthorized(new { message = "Неверный email или пароль:(" });
             }
 
+            // Генерация токенов
             var token = GenerateJWT(user);
+            var refreshToken = GenerateRefreshToken();
+
+            // Сохранение Refresh Token в базе данных
+            user.RefreshToken = refreshToken;
+            user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(30); //срок действия
+
+            await _connection.SaveChangesAsync(); // save changes
+
             return Ok(new
             {
                 message = "Вход выполнен",
-                token = token
+                token = token,
+                refreshToken = refreshToken // return Refresh Token client
             });
         }
+
 
         [Authorize]
         [HttpGet("secure-endpoint")]
