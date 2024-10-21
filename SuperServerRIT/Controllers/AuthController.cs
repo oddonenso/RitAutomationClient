@@ -10,6 +10,7 @@ using System.Text;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authorization;
+using SuperServerRIT.Services;
 
 namespace SuperServerRIT.Controllers
 {
@@ -18,20 +19,20 @@ namespace SuperServerRIT.Controllers
     {
         private readonly Connection _connection;
         private readonly IConfiguration _config;
-        
+        private readonly JwtService _jwtService; // Внедрение JwtService
 
-        public AuthController(Connection connection, IConfiguration config)
+        public AuthController(Connection connection, IConfiguration config, JwtService jwtService)
         {
             _connection = connection;
             _config = config;
+            _jwtService = jwtService; // Внедрение через конструктор
         }
-
 
         //регистратион
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] UserRegistrationDto request)
         {
-            var user = await _connection.Users.FirstOrDefaultAsync(u=>u.Email == request.Email);
+            var user = await _connection.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
 
             if (user != null)
             {
@@ -54,23 +55,21 @@ namespace SuperServerRIT.Controllers
                 Password = hashPass,
                 RoleID = role.RoleID, //по умолчанию
                 CreatedAt = DateTime.UtcNow
-
             };
 
             _connection.Users.Add(newUser);
             await _connection.SaveChangesAsync();
 
-            //генерация JWT-токена для user
-            var token = GenerateJWT(newUser);
+            // Генерация JWT-токена для user через JwtService
+            var token = _jwtService.GenerateJWT(newUser);
 
             return Ok(new
             {
                 message = "Регистрация пройдена",
                 token = token
             });
-
-
         }
+
         [HttpPost("refresh-token")]
         public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto request)
         {
@@ -81,8 +80,8 @@ namespace SuperServerRIT.Controllers
                 return Unauthorized(new { message = "Refresh Token недействителен" });
             }
 
-            // Генерация нового Access Token
-            var token = GenerateJWT(user);
+            // Генерация нового Access Token через JwtService
+            var token = _jwtService.GenerateJWT(user);
             var newRefreshToken = GenerateRefreshToken();
 
             // Обновление Refresh Token в базе данных
@@ -113,8 +112,8 @@ namespace SuperServerRIT.Controllers
                 return Unauthorized(new { message = "Неверный email или пароль:(" });
             }
 
-            // Генерация токенов
-            var token = GenerateJWT(user);
+            // Генерация токенов через JwtService
+            var token = _jwtService.GenerateJWT(user);
             var refreshToken = GenerateRefreshToken();
 
             // Сохранение Refresh Token в базе данных
@@ -131,51 +130,11 @@ namespace SuperServerRIT.Controllers
             });
         }
 
-
         [Authorize]
         [HttpGet("secure-endpoint")]
         public IActionResult GetSecureData()
         {
             return Ok(new { message = "Это защищенные данные" });
         }
-
-
-
-        private string GenerateJWT(User user)
-        {
-            var key = _config["Jwt:Key"];
-            if (string.IsNullOrEmpty(key))
-            {
-                throw new ArgumentNullException("Jwt:Key", "JWT ключ не может быть null или пустым!!!");
-            }
-
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
-            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
-            // Динамическое создание списка claims
-            var claims = new List<Claim>
-    {
-        new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
-        new Claim(ClaimTypes.Name, user.FirstName.ToString()),
-        new Claim(ClaimTypes.Email, user.Email)
-    };
-
-            // Добавление роли только если она определена
-            if (user.Role != null)
-            {
-                claims.Add(new Claim(ClaimTypes.Role, user.Role.RoleID.ToString()));
-            }
-
-            var token = new JwtSecurityToken(
-                _config["Jwt:Issuer"],
-                _config["Jwt:Issuer"],
-                claims,
-                expires: DateTime.Now.AddHours(3), // Время жизни токена
-                signingCredentials: credentials);
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
-        }
-
-
     }
 }

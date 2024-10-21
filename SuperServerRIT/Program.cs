@@ -3,6 +3,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Data;
+using SuperServerRIT.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,6 +40,9 @@ builder.Services.AddAuthentication(options =>
         ClockSkew = TimeSpan.Zero // Убираем стандартное смещение времени для токена
     };
 });
+
+// Регистрация JwtService
+builder.Services.AddScoped<JwtService>();
 
 var app = builder.Build();
 
