@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Data;
 using SuperServerRIT.Services;
+using MediatR;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,10 +12,17 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<Connection>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))); // Использует строку подключения из appsettings.json
 
+// Регистрация MediatR для обработки запросов
+builder.Services.AddMediatR(typeof(Program)); // Регистрация MediatR
+
 // Добавляем контроллеры
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSingleton<RabbitMqService>();
+
+// Добавляем фоновую службу
+builder.Services.AddHostedService<RabbitMqHostedService>();
 
 // Добавляем JWT-аутентификацию
 var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"]);
@@ -26,7 +34,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.RequireHttpsMetadata = true;
+    options.RequireHttpsMetadata = true; // Требовать HTTPS (для продакшена)
     options.SaveToken = true;
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -55,8 +63,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Включаем аутентификацию и авторизацию
-app.UseAuthentication();  // Должен идти перед UseAuthorization
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
