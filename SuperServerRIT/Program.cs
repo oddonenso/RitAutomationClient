@@ -8,23 +8,18 @@ using MediatR;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Добавляем контекст базы данных
+// Настройка контекста базы данных
 builder.Services.AddDbContext<Connection>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))); // Использует строку подключения из appsettings.json
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Регистрация MediatR для обработки запросов
-builder.Services.AddMediatR(typeof(Program)); // Регистрация MediatR
+builder.Services.AddMediatR(typeof(Program));
 
-// Добавляем контроллеры
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<RabbitMqService>();
-
-// Добавляем фоновую службу
 builder.Services.AddHostedService<RabbitMqHostedService>();
 
-// Добавляем JWT-аутентификацию
 var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"]);
 
 builder.Services.AddAuthentication(options =>
@@ -34,7 +29,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.RequireHttpsMetadata = true; // Требовать HTTPS (для продакшена)
+    options.RequireHttpsMetadata = true;
     options.SaveToken = true;
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -43,18 +38,16 @@ builder.Services.AddAuthentication(options =>
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"], // Опционально
+        ValidAudience = builder.Configuration["Jwt:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(key),
-        ClockSkew = TimeSpan.Zero // Убираем стандартное смещение времени для токена
+        ClockSkew = TimeSpan.Zero
     };
 });
 
-// Регистрация JwtService
 builder.Services.AddScoped<JwtService>();
 
 var app = builder.Build();
 
-// Конфигурация HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

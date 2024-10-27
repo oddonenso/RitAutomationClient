@@ -1,167 +1,92 @@
-﻿using Data;
-using Data.Tables;
+﻿// Controllers/EquipmentStatusController.cs
+using MediatR;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SuperServerRIT.Model;
+using SuperServerRIT.Commands;
+using System.Threading.Tasks;
 
 namespace SuperServerRIT.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class EquipmentStatusController : Controller
+    public class EquipmentStatusController : ControllerBase
     {
-        private readonly Connection _connection;
+        private readonly IMediator _mediator;
 
-        public EquipmentStatusController(Connection connection)
+        public EquipmentStatusController(IMediator mediator)
         {
-            _connection = connection;
+            _mediator = mediator;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetAllEquipmentStatus()
+        // POST: api/equipment/status
+        [HttpPost]
+        public async Task<IActionResult> AddEquipmentStatus([FromBody] AddEquipmentStatusCommand command)
         {
-            try
+            if (command == null || command.EquipmentID <= 0 ||
+                string.IsNullOrWhiteSpace(command.Location) ||
+                string.IsNullOrWhiteSpace(command.Status))
             {
-                var statusList = await _connection.EquipmentStatus.Include(x => x.Equipment).ToListAsync();
-                return Ok(statusList);
+                return BadRequest("Неверные данные статуса оборудования.");
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = $"Ошибка сервера: {ex.Message}" });
-            }
+
+            var equipmentStatusId = await _mediator.Send(command);
+            return CreatedAtAction(nameof(GetEquipmentStatusById), new { id = equipmentStatusId }, command);
         }
 
+        // GET: api/equipment/status/{id}
         [HttpGet("{id}")]
         public async Task<IActionResult> GetEquipmentStatusById(int id)
         {
-            try
+            var command = new GetEquipmentStatusByIdCommand { EquipmentStatusID = id };
+            var equipmentStatus = await _mediator.Send(command);
+
+            if (equipmentStatus == null)
             {
-                var status = await _connection.EquipmentStatus.Include(x => x.Equipment).FirstOrDefaultAsync(s => s.EquipmentStatusID == id);
-                if (status == null)
-                {
-                    return NotFound(new { message = "Статус оборудования не найден" });
-                }
-                return Ok(status);
+                return NotFound("Статус оборудования не найден.");
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = $"Ошибка сервера: {ex.Message}" });
-            }
+
+            return Ok(equipmentStatus);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> CreateEquipmentStatus([FromBody] EquipmentStatusDto request)
-        {
-            try
-            {
-                var equipment = await _connection.Equipment.FindAsync(request.EquipmentID);
-                if (equipment == null)
-                {
-                    return BadRequest(new { message = "Оборудование не найдено" });
-                }
-
-                var newStatus = new EquipmentStatus
-                {
-                    EquipmentID = request.EquipmentID,
-                    Temperature = request.Temperature,
-                    Pressure = request.Pressure,
-                    Location = request.Location,
-                    Status = request.Status,
-                    Timestamp = DateTime.UtcNow
-                };
-
-                _connection.EquipmentStatus.Add(newStatus);
-                await _connection.SaveChangesAsync();
-
-                return Ok(new { message = "Статус оборудования создан", id = newStatus.EquipmentStatusID });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = $"Ошибка сервера: {ex.Message}" });
-            }
-        }
-
+       
         [HttpPatch("{id}")]
-        public async Task<IActionResult> PatchEquipmentStatus(int id, [FromBody] JsonPatchDocument<EquipmentStatus> patchDoc)
+        public async Task<IActionResult> UpdateEquipmentStatus(int id, [FromBody] JsonPatchDocument<UpdateEquipmentStatusCommand> patchDoc)
         {
-            try
+            if (patchDoc == null)
             {
-                if (patchDoc == null)
-                {
-                    return BadRequest(new { message = "Неверный Patch документ" });
-                }
-
-                var status = await _connection.EquipmentStatus.FindAsync(id);
-                if (status == null)
-                {
-                    return NotFound(new { message = "Статус оборудования не найден" });
-                }
-
-                patchDoc.ApplyTo(status);
-
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                await _connection.SaveChangesAsync();
-                return Ok(new { message = "Статус оборудования успешно обновлен" });
+                return BadRequest("Запрос не может быть пустым.");
             }
-            catch (Exception ex)
+
+            var command = new UpdateEquipmentStatusCommand { EquipmentStatusID = id };
+            patchDoc.ApplyTo(command);
+
+            if (!ModelState.IsValid)
             {
-                return StatusCode(500, new { message = $"Ошибка сервера: {ex.Message}" });
+                return BadRequest(ModelState);
             }
+
+            var result = await _mediator.Send(command);
+            if (!result)
+            {
+                return NotFound("Статус оборудования не найден.");
+            }
+
+            return NoContent(); 
         }
 
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateEquipmentStatus(int id, [FromBody] EquipmentStatusUpdateDto request)
-        {
-            try
-            {
-                var status = await _connection.EquipmentStatus.FindAsync(id);
-                if (status == null)
-                {
-                    return NotFound(new { message = "Статус оборудования не найден" });
-                }
-
-                status.Temperature = request.Temperature ?? status.Temperature;
-                status.Pressure = request.Pressure ?? status.Pressure;
-                status.Location = request.Location ?? status.Location;
-                status.Status = request.Status ?? status.Status;
-                status.Timestamp = DateTime.UtcNow;
-
-                await _connection.SaveChangesAsync();
-
-                return Ok(new { message = "Статус оборудования обновлен" });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = $"Ошибка сервера: {ex.Message}" });
-            }
-        }
-
+       
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteEquipmentStatus(int id)
         {
-            try
-            {
-                var status = await _connection.EquipmentStatus.FindAsync(id);
-                if (status == null)
-                {
-                    return NotFound(new { message = "Статус оборудования не найден" });
-                }
+            var command = new DeleteEquipmentStatusCommand { EquipmentStatusID = id };
+            var result = await _mediator.Send(command);
 
-                _connection.EquipmentStatus.Remove(status);
-                await _connection.SaveChangesAsync();
-
-                return Ok(new { message = "Статус оборудования удален" });
-            }
-            catch (Exception ex)
+            if (!result)
             {
-                return StatusCode(500, new { message = $"Ошибка сервера: {ex.Message}" });
+                return NotFound("Статус оборудования не найден.");
             }
+
+            return NoContent(); 
         }
     }
 }

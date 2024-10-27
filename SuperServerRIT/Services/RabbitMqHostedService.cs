@@ -1,11 +1,11 @@
 ﻿using Microsoft.Extensions.Hosting;
-using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
-using System.Text;
+using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Data;
 using Data.Tables;
+using Microsoft.EntityFrameworkCore;
 
 namespace SuperServerRIT.Services
 {
@@ -22,35 +22,39 @@ namespace SuperServerRIT.Services
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            // Запускаем подписку на получение сообщений в фоне
             _rabbitMqService.ReceiveMessages(OnMessageReceived);
-
             return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            // Закрытие ресурсов при остановке
             _rabbitMqService.Dispose();
             return Task.CompletedTask;
         }
 
-        // Этот метод будет вызван при получении сообщения от RabbitMQ
         private async void OnMessageReceived(string message)
         {
             using (var scope = _serviceScopeFactory.CreateScope())
             {
                 var dbContext = scope.ServiceProvider.GetRequiredService<Connection>();
 
-                // Пример записи сообщения в БД
-                var equipmentStatus = new EquipmentStatus
+                try
                 {
-                    Status = message,
-                    Timestamp = DateTime.UtcNow
-                };
+                    // Логика обработки сообщений об оборудовании
+                    var equipment = new Equipment
+                    {
+                        Name = message, // Здесь должно быть нужное преобразование строки
+                        Type = "ExampleType" // Укажите тип или извлеките его из сообщения
+                    };
 
-                dbContext.EquipmentStatus.Add(equipmentStatus);
-                await dbContext.SaveChangesAsync();
+                    dbContext.Equipment.Add(equipment);
+                    await dbContext.SaveChangesAsync();
+                    Console.WriteLine($"Сохранено оборудование: {equipment.Name}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Ошибка при обработке сообщения: {ex.Message}");
+                }
             }
         }
     }
