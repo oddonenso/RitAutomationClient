@@ -1,7 +1,10 @@
-﻿namespace SuperServerRIT.Model
+﻿using MediatR;
+
+namespace SuperServerRIT.Commands
 {
-    public class EquipmentStatusUpdateDto
+    public class UpdateEquipmentStatusCommand: IRequest<bool>
     {
+        public int EquipmentStatusID { get; set; }
         public decimal? Temperature { get; set; }
         public decimal? Pressure { get; set; }
         public string? Location { get; set; }

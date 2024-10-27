@@ -1,179 +1,83 @@
-﻿using Data;
-using Data.Tables;
-using Microsoft.AspNetCore.JsonPatch;
+﻿
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using MediatR;
+using SuperServerRIT.Commands;
 using SuperServerRIT.Model;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace SuperServerRIT.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class NotificationController : Controller
+    public class NotificationController : ControllerBase
     {
-        private readonly Connection _connection;
+        private readonly IMediator _mediator;
 
-        public NotificationController(Connection connection)
+        public NotificationController(IMediator mediator)
         {
-            _connection = connection;
+            _mediator = mediator;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllNotif()
+        public async Task<IActionResult> GetAllNotifications()
         {
-            try
-            {
-                var notif = await _connection.Notification.Include(x => x.Equipment).ToListAsync();
-
-                var result = notif.Select(x => new NotificationDto
-                {
-                    EquipmentId = x.EquipmentID,
-                    Message = x.Message,
-                    Timestamp = x.Timestamp
-                }).ToList();
-
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Ошибка при получении уведомлений", error = ex.Message });
-            }
+            var command = new GetAllNotificationsCommand();
+            var notifications = await _mediator.Send(command);
+            return Ok(notifications);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetNotificationById(int id)
         {
-            try
+            var command = new GetNotificationByIdCommand(id);
+            var notification = await _mediator.Send(command);
+
+            if (notification == null)
             {
-                var notification = await _connection.Notification
-                    .Include(n => n.Equipment)
-                    .FirstOrDefaultAsync(n => n.NotificationID == id);
-
-                if (notification == null)
-                {
-                    return NotFound(new { message = "Уведомление не найдено" });
-                }
-
-                var notificationDto = new NotificationDto
-                {
-                    EquipmentId = notification.EquipmentID,
-                    Message = notification.Message,
-                    Timestamp = notification.Timestamp
-                };
-
-                return Ok(notificationDto);
+                return NotFound(new { message = "Уведомление не найдено" });
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Ошибка при получении уведомления", error = ex.Message });
-            }
+
+            return Ok(notification);
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateNotification([FromBody] NotificationDto notificationDto)
+        public async Task<IActionResult> AddNotification([FromBody] AddNotificationCommand command)
         {
-            try
-            {
-                var equipment = await _connection.Equipment.FirstOrDefaultAsync(e => e.EquipmentID == notificationDto.EquipmentId);
-                if (equipment == null)
-                {
-                    return BadRequest(new { message = "Оборудование не найдено" });
-                }
-
-                var notification = new Notification
-                {
-                    EquipmentID = notificationDto.EquipmentId,
-                    Message = notificationDto.Message,
-                    Timestamp = DateTime.UtcNow
-                };
-
-                _connection.Notification.Add(notification);
-                await _connection.SaveChangesAsync();
-
-                return Ok(notification);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Ошибка при создании уведомления", error = ex.Message });
-            }
+            var notificationId = await _mediator.Send(command);
+            return CreatedAtAction(nameof(GetNotificationById), new { id = notificationId }, command);
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateNotification(int id, [FromBody] NotificationDto notificationDto)
-        {
-            try
-            {
-                var notification = await _connection.Notification.FirstOrDefaultAsync(n => n.NotificationID == id);
-                if (notification == null)
-                {
-                    return NotFound(new { message = "Уведомление не найдено" });
-                }
-
-                notification.Message = notificationDto.Message;
-                notification.Timestamp = DateTime.UtcNow;
-                notification.EquipmentID = notificationDto.EquipmentId;
-
-                await _connection.SaveChangesAsync();
-                return Ok(notification);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Ошибка при обновлении уведомления", error = ex.Message });
-            }
-        }
         [HttpPatch("{id}")]
-        public async Task<IActionResult> PatchNotification(int id, [FromBody] JsonPatchDocument<Notification> patchDoc)
+        public async Task<IActionResult> PatchNotification(int id, [FromBody] UpdateNotificationCommand command)
         {
-            try
+            if (command.NotificationID != id)
             {
-                if (patchDoc == null)
-                {
-                    return BadRequest(new { message = "Неверный Patch документ" });
-                }
-
-                var notification = await _connection.Notification.FirstOrDefaultAsync(n => n.NotificationID == id);
-                if (notification == null)
-                {
-                    return NotFound(new { message = "Уведомление не найдено" });
-                }
-
-                patchDoc.ApplyTo(notification);
-
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                await _connection.SaveChangesAsync();
-                return Ok(new { message = "Уведомление успешно обновлено" });
+                return BadRequest("ID в теле запроса не совпадает с ID в URL.");
             }
-            catch (Exception ex)
+
+            var result = await _mediator.Send(command);
+
+            if (!result)
             {
-                return StatusCode(500, new { message = $"Ошибка при обновлении уведомления: {ex.Message}" });
+                return NotFound(new { message = "Уведомление не найдено" });
             }
+
+            return NoContent();
         }
-
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteNotification(int id)
         {
-            try
-            {
-                var notification = await _connection.Notification.FirstOrDefaultAsync(n => n.NotificationID == id);
-                if (notification == null)
-                {
-                    return NotFound(new { message = "Уведомление не найдено" });
-                }
+            var command = new DeleteNotificationCommand(id);
+            var result = await _mediator.Send(command);
 
-                _connection.Notification.Remove(notification);
-                await _connection.SaveChangesAsync();
-
-                return Ok(new { message = "Уведомление удалено" });
-            }
-            catch (Exception ex)
+            if (!result)
             {
-                return StatusCode(500, new { message = "Ошибка при удалении уведомления", error = ex.Message });
+                return NotFound(new { message = "Уведомление не найдено" });
             }
+
+            return NoContent();
         }
     }
 }

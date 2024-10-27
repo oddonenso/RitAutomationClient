@@ -1,187 +1,96 @@
-﻿using Data;
-using Data.Tables;
+﻿// Controllers/AuditLogController.cs
+using MediatR;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SuperServerRIT.Model;
+using SuperServerRIT.Commands;
+using System.Threading.Tasks;
 
 namespace SuperServerRIT.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AuditLogController : Controller
+    public class AuditLogController : ControllerBase
     {
-        private readonly Connection _connection;
+        private readonly IMediator _mediator;
 
-        public AuditLogController(Connection connection)
+        public AuditLogController(IMediator mediator)
         {
-            _connection = connection;
+            _mediator = mediator;
         }
 
+        // POST: api/auditlog
         [HttpPost]
-        public async Task<IActionResult> CreateLog([FromBody] AuditLogDto auditLogDto)
+        public async Task<IActionResult> CreateLog([FromBody] AddAuditLogCommand command)
         {
-            try
+            if (command == null || command.UserID <= 0 || string.IsNullOrWhiteSpace(command.Action))
             {
-                var user = await _connection.Users.FirstOrDefaultAsync(x => x.UserID == auditLogDto.UserID);
-                if (user == null)
-                {
-                    return BadRequest(new { message = "Пользователь не найден" });
-                }
-                var log = new AuditLog
-                {
-                    UserID = auditLogDto.UserID,
-                    Action = auditLogDto.Action,
-                    EntityAffected = auditLogDto.EntityAffected,
-                    EntityID = auditLogDto.EntityID,
-                    Timestamp = DateTime.UtcNow
-                };
+                return BadRequest("Неверные данные для записи аудита.");
+            }
 
-                _connection.AuditLog.Add(log);
-                await _connection.SaveChangesAsync();
-                return Ok(log);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Ошибка при создании лога", error = ex.Message });
-            }
+            var logId = await _mediator.Send(command);
+            return CreatedAtAction(nameof(GetLogById), new { id = logId }, command);
         }
 
+        // GET: api/auditlog/{id}
         [HttpGet("{id}")]
         public async Task<IActionResult> GetLogById(int id)
         {
-            try
-            {
-                var log = await _connection.AuditLog
-                    .Include(l => l.User)
-                    .FirstOrDefaultAsync(l => l.LogID == id);
+            var command = new GetAuditLogByIdCommand { LogID = id }; // Убедитесь, что такая команда существует
+            var log = await _mediator.Send(command);
 
-                if (log == null)
-                {
-                    return NotFound(new { message = "Запись аудита не найдена" });
-                }
-
-                var logDto = new AuditLogDto
-                {
-                    UserID = log.UserID,
-                    Action = log.Action,
-                    EntityAffected = log.EntityAffected,
-                    EntityID = log.EntityID,
-                    Timestamp = log.Timestamp
-                };
-
-                return Ok(logDto);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Ошибка при получении лога", error = ex.Message });
-            }
+            return log != null ? Ok(log) : NotFound("Запись аудита не найдена.");
         }
 
+        // GET: api/auditlog
         [HttpGet]
         public async Task<IActionResult> GetAllLogs()
         {
-            try
-            {
-                var logs = await _connection.AuditLog
-                    .Include(l => l.User) // Загрузить данные пользователя
-                    .ToListAsync();
-
-                var result = logs.Select(l => new AuditLogDto
-                {
-                    UserID = l.UserID,
-                    Action = l.Action,
-                    EntityAffected = l.EntityAffected,
-                    EntityID = l.EntityID,
-                    Timestamp = l.Timestamp
-                }).ToList();
-
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Ошибка при получении логов", error = ex.Message });
-            }
+            var command = new GetAllAuditLogsCommand(); // Убедитесь, что такая команда существует
+            var logs = await _mediator.Send(command);
+            return Ok(logs);
         }
 
+        // PUT: api/auditlog/{id}
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateLog(int id, [FromBody] AuditLogDto auditLogDto)
+        public async Task<IActionResult> UpdateLog(int id, [FromBody] UpdateAuditLogCommand command)
         {
-            try
+            if (command == null || command.LogID != id)
             {
-                var log = await _connection.AuditLog.FirstOrDefaultAsync(l => l.LogID == id);
-                if (log == null)
-                {
-                    return NotFound(new { message = "Запись аудита не найдена" });
-                }
-
-                log.Action = auditLogDto.Action;
-                log.EntityAffected = auditLogDto.EntityAffected;
-                log.EntityID = auditLogDto.EntityID;
-                log.UserID = auditLogDto.UserID;
-                log.Timestamp = DateTime.UtcNow;
-
-                await _connection.SaveChangesAsync();
-                return Ok(log);
+                return BadRequest("Неверные данные для обновления записи аудита.");
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Ошибка при обновлении лога", error = ex.Message });
-            }
+
+            var result = await _mediator.Send(command);
+            return result ? NoContent() : NotFound("Запись аудита не найдена.");
         }
+
+        // PATCH: api/auditlog/{id}
         [HttpPatch("{id}")]
-        public async Task<IActionResult> PatchLog(int id, [FromBody] JsonPatchDocument<AuditLog> patchDoc)
+        public async Task<IActionResult> PatchLog(int id, [FromBody] JsonPatchDocument<UpdateAuditLogCommand> patchDoc)
         {
-            try
+            if (patchDoc == null)
             {
-                if (patchDoc == null)
-                {
-                    return BadRequest(new { message = "Неверный Patch документ" });
-                }
-
-                var log = await _connection.AuditLog.FirstOrDefaultAsync(l => l.LogID == id);
-                if (log == null)
-                {
-                    return NotFound(new { message = "Запись аудита не найдена" });
-                }
-
-                patchDoc.ApplyTo(log);
-
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                await _connection.SaveChangesAsync();
-                return Ok(new { message = "Запись аудита успешно обновлена" });
+                return BadRequest("Запрос не может быть пустым.");
             }
-            catch (Exception ex)
+
+            var command = new UpdateAuditLogCommand { LogID = id }; // Убедитесь, что такая команда существует
+            patchDoc.ApplyTo(command);
+
+            if (!ModelState.IsValid)
             {
-                return StatusCode(500, new { message = $"Ошибка при обновлении записи аудита: {ex.Message}" });
+                return BadRequest(ModelState);
             }
+
+            var result = await _mediator.Send(command);
+            return result ? NoContent() : NotFound("Запись аудита не найдена.");
         }
 
-
+        // DELETE: api/auditlog/{id}
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteLog(int id)
         {
-            try
-            {
-                var log = await _connection.AuditLog.FirstOrDefaultAsync(l => l.LogID == id);
-                if (log == null)
-                {
-                    return NotFound(new { message = "Запись аудита не найдена" });
-                }
-
-                _connection.AuditLog.Remove(log);
-                await _connection.SaveChangesAsync();
-
-                return Ok(new { message = "Запись аудита удалена" });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Ошибка при удалении лога", error = ex.Message });
-            }
+            var command = new DeleteAuditLogCommand { LogID = id }; // Убедитесь, что такая команда существует
+            var result = await _mediator.Send(command);
+            return result ? NoContent() : NotFound("Запись аудита не найдена.");
         }
     }
 }
