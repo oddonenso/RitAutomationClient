@@ -1,0 +1,62 @@
+﻿<Page x:Class="RitAutomationClient.Views.RegistrationPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Title="RegistrationPage">
+
+    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Border Background="#F7F7F7" CornerRadius="10" Padding="30" Width="300">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="Создайте аккаунт" FontSize="24" FontWeight="Bold" Foreground="#D32F2F"
+                           HorizontalAlignment="Center" Margin="0,0,0,15"/>
+                <TextBlock Text="Пожалуйста, заполните форму для регистрации" FontSize="14" Foreground="Gray"
+                           HorizontalAlignment="Center" Margin="0,0,0,20"/>
+
+                <!-- Поле для имени -->
+                <TextBlock Text="Имя" FontSize="12" Foreground="Gray" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+                <TextBox x:Name="FirstNameTextBox" Width="240" Height="35" Margin="0,5,0,10" Padding="10" 
+                         Background="White" BorderBrush="#D32F2F" Foreground="#333333" />
+
+                <!-- Поле для фамилии -->
+                <TextBlock Text="Фамилия" FontSize="12" Foreground="Gray" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+                <TextBox x:Name="LastNameTextBox" Width="240" Height="35" Margin="0,5,0,10" Padding="10" 
+                         Background="White" BorderBrush="#D32F2F" Foreground="#333333" />
+
+                <!-- Поле для электронной почты -->
+                <TextBlock Text="Электронная почта" FontSize="12" Foreground="Gray" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+                <TextBox x:Name="EmailTextBox" Width="240" Height="35" Margin="0,5,0,10" Padding="10" 
+                         Background="White" BorderBrush="#D32F2F" Foreground="#333333" />
+
+                <!-- Поле для пароля -->
+                <TextBlock Text="Пароль" FontSize="12" Foreground="Gray" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+                <PasswordBox x:Name="PasswordBox" Width="240" Height="35" Margin="0,5,0,10" Padding="10"
+                             Background="White" BorderBrush="#D32F2F" Foreground="#333333"/>
+
+                <!-- Поле для подтверждения пароля -->
+                <TextBlock Text="Подтвердите пароль" FontSize="12" Foreground="Gray" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+                <PasswordBox x:Name="ConfirmPasswordBox" Width="240" Height="35" Margin="0,5,0,20" Padding="10"
+                             Background="White" BorderBrush="#D32F2F" Foreground="#333333" />
+
+                <!-- Кнопка регистрации -->
+                <Button Content="Зарегистрироваться" Width="240" Height="40" Background="#D32F2F"
+                        Foreground="White" FontWeight="Bold" BorderBrush="Transparent"
+                        Click="RegisterButton_Click">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="#D32F2F"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#B71C1C"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <!-- Сообщение о статусе регистрации -->
+                <TextBlock x:Name="StatusMessageTextBlock" FontSize="14" Foreground="Gray"
+                           HorizontalAlignment="Center" Margin="0,20,0,0"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Page>

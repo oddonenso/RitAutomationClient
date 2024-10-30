@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using Data;
 using Data.Tables;
 using Microsoft.EntityFrameworkCore;
+using SuperServerRIT.Model;
+using System.Text.Json;
 
 namespace SuperServerRIT.Services
 {
@@ -34,22 +36,41 @@ namespace SuperServerRIT.Services
 
         private async void OnMessageReceived(string message)
         {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                Console.WriteLine("Ошибка: Получено пустое сообщение.");
+                return;
+            }
+
             using (var scope = _serviceScopeFactory.CreateScope())
             {
                 var dbContext = scope.ServiceProvider.GetRequiredService<Connection>();
 
                 try
                 {
-                    // Логика обработки сообщений об оборудовании
+                    var equipmentData = JsonSerializer.Deserialize<EquipmentMessage>(message);
+
+                    if (equipmentData == null)
+                    {
+                        Console.WriteLine("Ошибка: Неправильный формат сообщения.");
+                        return;
+                    }
+
                     var equipment = new Equipment
                     {
-                        Name = message, // Здесь должно быть нужное преобразование строки
-                        Type = "ExampleType" // Укажите тип или извлеките его из сообщения
+                        Name = equipmentData.Name,
+                        Type = equipmentData.Type,
+                        Status = equipmentData.Status
                     };
 
                     dbContext.Equipment.Add(equipment);
                     await dbContext.SaveChangesAsync();
+
                     Console.WriteLine($"Сохранено оборудование: {equipment.Name}");
+                }
+                catch (JsonException ex)
+                {
+                    Console.WriteLine($"Ошибка десериализации JSON: {ex.Message}");
                 }
                 catch (Exception ex)
                 {
@@ -57,5 +78,8 @@ namespace SuperServerRIT.Services
                 }
             }
         }
+
     }
+
+
 }
