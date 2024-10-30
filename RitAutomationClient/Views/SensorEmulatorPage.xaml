@@ -1,0 +1,77 @@
+﻿<Page x:Class="RitAutomationClient.Views.SensorEmulatorPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:m="clr-namespace:Microsoft.Maps.MapControl.WPF;assembly=Microsoft.Maps.MapControl.WPF"
+      Title="Sensor Emulator">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Верхняя панель с заголовком -->
+        <Border Background="#F7F7F7" Padding="20" Grid.Row="0">
+            <TextBlock Text="Эмулятор датчиков" FontSize="24" FontWeight="Bold" Foreground="#D32F2F"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Border>
+
+        <!-- Основной контент страницы -->
+        <Grid Grid.Row="1" Margin="20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300"/>
+                <!-- Панель ввода -->
+                <ColumnDefinition Width="*"/>
+                <!-- Карта -->
+            </Grid.ColumnDefinitions>
+
+            <!-- Панель с полями ввода данных -->
+            <StackPanel Grid.Column="0" HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="10">
+                <!-- Поле для ввода температуры -->
+                <TextBlock Text="Температура (°C)" FontSize="12" Foreground="Gray" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+                <TextBox x:Name="TemperatureTextBox" Height="35" Margin="0,5,0,10" Padding="10"
+                         Background="White" BorderBrush="#D32F2F" Foreground="#333333" />
+
+                <!-- Поле для ввода давления -->
+                <TextBlock Text="Давление (кПа)" FontSize="12" Foreground="Gray" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+                <TextBox x:Name="PressureTextBox" Height="35" Margin="0,5,0,10" Padding="10"
+                         Background="White" BorderBrush="#D32F2F" Foreground="#333333" />
+
+                <!-- Поля для ввода координат -->
+                <TextBlock Text="Координаты (Широта, Долгота)" FontSize="12" Foreground="Gray" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+                <StackPanel Orientation="Horizontal" Margin="0,5,0,10">
+                    <TextBox x:Name="LatitudeTextBox" Width="115" Height="35" Margin="0,0,10,0" Padding="10"
+                             Background="White" BorderBrush="#D32F2F" Foreground="#333333" IsReadOnly="True" />
+                    <TextBox x:Name="LongitudeTextBox" Width="115" Height="35" Padding="10"
+                             Background="White" BorderBrush="#D32F2F" Foreground="#333333" IsReadOnly="True"/>
+                </StackPanel>
+
+                <!-- Кнопка для отправки данных -->
+                <Button Content="Отправить данные" Height="40" Background="#D32F2F"
+                        Foreground="White" FontWeight="Bold" BorderBrush="Transparent"
+                        Click="SubmitButton_Click">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="#D32F2F"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#B71C1C"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <!-- Сообщение о результате -->
+                <TextBlock x:Name="StatusMessageTextBlock" FontSize="14" Foreground="Gray"
+                           HorizontalAlignment="Center" Margin="0,20,0,0"/>
+            </StackPanel>
+
+            <!-- Карта для выбора координат -->
+            <m:Map x:Name="SensorMap" Grid.Column="1" CredentialsProvider="Ваш_Bing_Maps_API_Key"
+                   Center="47.6062,-122.3321" ZoomLevel="5" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                   MouseDoubleClick="SensorMap_MouseDoubleClick"/>
+        </Grid>
+    </Grid>
+</Page>

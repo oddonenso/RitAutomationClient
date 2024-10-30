@@ -2,10 +2,9 @@
 using MediatR;
 using System.Threading.Tasks;
 using SuperServerRIT.Commands;
-using Microsoft.AspNetCore.JsonPatch;
+using SuperServerRIT.Model;
 using Data.Tables;
-using Microsoft.AspNetCore.Authorization;
-using SuperServerRIT.Model; 
+using Microsoft.AspNetCore.JsonPatch;
 
 namespace SuperServerRIT.Controllers
 {
@@ -19,88 +18,28 @@ namespace SuperServerRIT.Controllers
             _mediator = mediator;
         }
 
-        // Обработка входа пользователя
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] UserRegistrationDto request)
+        {
+            var command = new RegisterUserCommand(request);
+            var token = await _mediator.Send(command);
+            return Ok(new { token });
+        }
+
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] UserLoginDto request)
         {
-            try
-            {
-                var command = new LoginUserCommand
-                {
-                    Email = request.Email,
-                    Password = request.Password
-                };
-
-                var result = await _mediator.Send(command);
-
-                var response = new LoginResponseDto
-                {
-                    Message = result.Message,
-                    Token = result.Token,
-                    RefreshToken = result.RefreshToken
-                };
-
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = $"Ошибка сервера: {ex.Message}" });
-            }
+            var command = new LoginUserCommand { Email = request.Email, Password = request.Password };
+            var result = await _mediator.Send(command);
+            return Ok(result);
         }
 
-        // Обновление пользователя
         [HttpPatch("update/{id}")]
         public async Task<IActionResult> UpdateUser(int id, [FromBody] JsonPatchDocument<User> patch)
         {
-            try
-            {
-                var command = new UpdateUserCommand { UserId = id, PatchDocument = patch };
-                var message = await _mediator.Send(command);
-
-                var response = new UpdateUserResponseDto
-                {
-                    Message = message,
-                    UserId = id
-                };
-
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = $"Ошибка сервера: {ex.Message}" });
-            }
-        }
-
-        // Обработка Refresh Token
-        [HttpPost("refresh-token")]
-        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto request)
-        {
-            try
-            {
-                var command = new RefreshTokenCommand { RefreshToken = request.RefreshToken };
-                var result = await _mediator.Send(command);
-
-                var response = new RefreshTokenResponseDto
-                {
-                    Message = "Токен обновлен",
-                    NewToken = result.Token,
-                    NewRefreshToken = result.NewRefreshToken
-                };
-
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = $"Ошибка сервера: {ex.Message}" });
-            }
-        }
-
-        
-        [Authorize]
-        [HttpGet("secure-endpoint")]
-        public IActionResult GetSecureData()
-        {
-            return Ok(new { message = "Это защищенные данные" });
+            var command = new UpdateUserCommand { UserId = id, PatchDocument = patch };
+            var message = await _mediator.Send(command);
+            return Ok(new { message });
         }
     }
 }

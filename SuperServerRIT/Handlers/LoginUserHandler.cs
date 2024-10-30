@@ -1,11 +1,10 @@
 ﻿using MediatR;
-using Microsoft.EntityFrameworkCore;
-using BCrypt.Net;
 using Data;
 using Data.Tables;
-using SuperServerRIT.Services;
 using SuperServerRIT.Commands;
+using SuperServerRIT.Services;
 using System.Security.Cryptography;
+using Microsoft.EntityFrameworkCore;
 
 namespace SuperServerRIT.Handlers
 {
@@ -24,31 +23,49 @@ namespace SuperServerRIT.Handlers
 
         public async Task<LoginUserResponse> Handle(LoginUserCommand request, CancellationToken cancellationToken)
         {
-            var user = await _connection.Users.Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.Email == request.Email);
-
-            if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
+            try
             {
-                throw new Exception("Неверный email или пароль");
+                Console.WriteLine($"Пытаемся авторизовать пользователя: {request.Email}");
+
+                var user = await _connection.Users.Include(u => u.Role)
+                    .FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
+
+                if (user == null)
+                {
+                    Console.WriteLine("Пользователь с таким email не найден.");
+                    throw new Exception("Неверный email или пароль");
+                }
+
+                if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
+                {
+                    Console.WriteLine("Неверный пароль.");
+                    throw new Exception("Неверный email или пароль");
+                }
+
+                // Генерация токена
+                var token = _jwtService.GenerateJWT(user);
+                var refreshToken = GenerateRefreshToken();
+
+                // Обновление данных пользователя
+                user.RefreshToken = refreshToken;
+                user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(30);
+                await _connection.SaveChangesAsync();
+
+                Console.WriteLine("Отправка сообщения в RabbitMQ о входе пользователя...");
+                _rabbitMqService.SendMessage($"Пользователь {user.Email} вошел в систему");
+
+                return new LoginUserResponse { Message = "Вход выполнен", Token = token, RefreshToken = refreshToken };
             }
-
-            var token = _jwtService.GenerateJWT(user);
-            var refreshToken = GenerateRefreshToken();
-
-            user.RefreshToken = refreshToken;
-            user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(30);
-            await _connection.SaveChangesAsync();
-
-            // пользователь Zашел
-            var message = $"Пользователь {user.Email} вошел в систему";
-            _rabbitMqService.SendMessage(message);
-
-            return new LoginUserResponse
+            catch (DbUpdateException ex)
             {
-                Message = "Вход выполнен",
-                Token = token,
-                RefreshToken = refreshToken
-            };
+                Console.WriteLine($"Ошибка базы данных: {ex.Message}");
+                throw new Exception("Ошибка базы данных при попытке входа.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка при авторизации: {ex.Message}");
+                throw;
+            }
         }
 
         private string GenerateRefreshToken()

@@ -1,5 +1,4 @@
-﻿// RegisterUserCommand.cs
-using MediatR;
+﻿using MediatR;
 using SuperServerRIT.Model;
 
 namespace SuperServerRIT.Commands
