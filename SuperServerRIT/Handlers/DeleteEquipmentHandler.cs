@@ -1,16 +1,19 @@
 ﻿using MediatR;
 using Data;
 using SuperServerRIT.Commands;
+using SuperServerRIT.Services;
 
 namespace SuperServerRIT.Handlers
 {
     public class DeleteEquipmentHandler : IRequestHandler<DeleteEquipmentCommand, string>
     {
         private readonly Connection _connection;
+        private readonly RabbitMqService _rabbitMqService;
 
-        public DeleteEquipmentHandler(Connection connection)
+        public DeleteEquipmentHandler(Connection connection, RabbitMqService rabbitMqService)
         {
             _connection = connection;
+            _rabbitMqService = rabbitMqService;
         }
 
         public async Task<string> Handle(DeleteEquipmentCommand request, CancellationToken cancellationToken)
@@ -18,13 +21,17 @@ namespace SuperServerRIT.Handlers
             var equipment = await _connection.Equipment.FindAsync(request.EquipmentId);
             if (equipment == null)
             {
-                throw new Exception("Оборудование не найдено");
+                throw new Exception("Equipment not found");
             }
 
             _connection.Equipment.Remove(equipment);
             await _connection.SaveChangesAsync(cancellationToken);
 
-            return "Оборудование удалено";
+            // Отправляем сообщение в RabbitMQ
+            var message = new { Action = "EquipmentDeleted", EquipmentId = request.EquipmentId };
+            _rabbitMqService.SendMessage(message);
+
+            return "Equipment deleted successfully";
         }
     }
 }

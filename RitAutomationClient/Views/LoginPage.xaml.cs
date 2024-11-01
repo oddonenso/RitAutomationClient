@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SuperServerRIT.Services;
+using System;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -15,19 +16,23 @@ namespace RitAutomationClient.Views
         private static readonly string ApiUrl = "https://localhost:7183/api/auth/login";
         private int loginAttempts = 0;
         private bool isLocked = false;
+        private readonly JwtService _jwtService;
 
-        public LoginPage()
+
+        public LoginPage(JwtService jwtService)
         {
             InitializeComponent();
+            _jwtService = jwtService;
         }
 
         private void RegistrationLink_Click(object sender, RoutedEventArgs e)
         {
-            NavigationService.Navigate(new RegistrationPage());
+            NavigationService.Navigate(new RegistrationPage(_jwtService));
         }
 
         private async void LoginButton_Click(object sender, RoutedEventArgs e)
         {
+            // Проверка состояния блокировки
             if (isLocked)
             {
                 StatusMessageTextBlock.Text = "Попробуйте снова позже.";
@@ -57,19 +62,18 @@ namespace RitAutomationClient.Views
                 using var httpClient = new HttpClient();
                 var response = await httpClient.PostAsync(ApiUrl, content);
 
+                var responseBody = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Ответ от сервера: {responseBody}");
+
                 if (response.IsSuccessStatusCode)
                 {
-                    // Сброс количества попыток после успешной авторизации
                     loginAttempts = 0;
-
-                    // Получаем JSON-ответ с сервера
-                    var responseBody = await response.Content.ReadAsStringAsync();
                     var loginResponse = JsonSerializer.Deserialize<LoginUserResponse>(responseBody);
 
                     if (loginResponse != null)
                     {
                         StatusMessageTextBlock.Text = "Вход выполнен успешно!";
-                        NavigationService.Navigate(new SensorEmulatorPage());
+                        NavigationService.Navigate(new SensorEmulatorPage(_jwtService));
                     }
                     else
                     {
@@ -81,15 +85,17 @@ namespace RitAutomationClient.Views
                     await HandleFailedLoginAttempt(response);
                 }
             }
-            catch (JsonException)
+            catch (JsonException jsonEx)
             {
-                StatusMessageTextBlock.Text = $"Ошибка( ";
+                StatusMessageTextBlock.Text = $"Ошибка JSON: {jsonEx.ToString()}";
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                StatusMessageTextBlock.Text = $"Ошибка(";
+                StatusMessageTextBlock.Text = $"Ошибка авторизации: {ex.ToString()}";
             }
         }
+
+
 
         private async Task HandleFailedLoginAttempt(HttpResponseMessage response)
         {
