@@ -4,10 +4,8 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Data;
-using Data.Tables;
-using Microsoft.EntityFrameworkCore;
-using SuperServerRIT.Model;
 using System.Text.Json;
+using SuperServerRIT.Model;
 
 namespace SuperServerRIT.Services
 {
@@ -24,7 +22,7 @@ namespace SuperServerRIT.Services
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _rabbitMqService.ReceiveMessages(OnMessageReceived);
+            _rabbitMqService.ReceiveMessages(OnMessageReceivedAsync);
             return Task.CompletedTask;
         }
 
@@ -34,11 +32,11 @@ namespace SuperServerRIT.Services
             return Task.CompletedTask;
         }
 
-        private async void OnMessageReceived(string message)
+        private async Task OnMessageReceivedAsync(string message)
         {
             if (string.IsNullOrWhiteSpace(message))
             {
-                Console.WriteLine("Ошибка: Получено пустое сообщение.");
+                Console.WriteLine("Error: Received an empty message.");
                 return;
             }
 
@@ -50,36 +48,30 @@ namespace SuperServerRIT.Services
                 {
                     var equipmentData = JsonSerializer.Deserialize<EquipmentMessage>(message);
 
-                    if (equipmentData == null)
+                    if (equipmentData?.Action == "UpdateStatus")
                     {
-                        Console.WriteLine("Ошибка: Неправильный формат сообщения.");
-                        return;
+                        var equipment = await dbContext.Equipment.FindAsync(equipmentData.EquipmentId);
+                        if (equipment != null)
+                        {
+                            equipment.Status = equipmentData.Status;
+                            await dbContext.SaveChangesAsync();
+                            Console.WriteLine($"Updated status for equipment {equipment.Name} to {equipment.Status}");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Equipment not found.");
+                        }
                     }
-
-                    var equipment = new Equipment
-                    {
-                        Name = equipmentData.Name,
-                        Type = equipmentData.Type,
-                        Status = equipmentData.Status
-                    };
-
-                    dbContext.Equipment.Add(equipment);
-                    await dbContext.SaveChangesAsync();
-
-                    Console.WriteLine($"Сохранено оборудование: {equipment.Name}");
                 }
                 catch (JsonException ex)
                 {
-                    Console.WriteLine($"Ошибка десериализации JSON: {ex.Message}");
+                    Console.WriteLine($"JSON deserialization error: {ex.Message}");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Ошибка при обработке сообщения: {ex.Message}");
+                    Console.WriteLine($"Error processing message: {ex.Message}");
                 }
             }
         }
-
     }
-
-
 }

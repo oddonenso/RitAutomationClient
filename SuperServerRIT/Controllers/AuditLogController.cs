@@ -1,5 +1,4 @@
-﻿// Controllers/AuditLogController.cs
-using MediatR;
+﻿using MediatR;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using SuperServerRIT.Commands;
@@ -18,7 +17,11 @@ namespace SuperServerRIT.Controllers
             _mediator = mediator;
         }
 
-        // POST: api/auditlog
+        /// <summary>
+        /// Создает новую запись аудита.
+        /// </summary>
+        /// <param name="command">Команда для создания записи аудита.</param>
+        /// <returns>Созданную запись аудита.</returns>
         [HttpPost]
         public async Task<IActionResult> CreateLog([FromBody] AddAuditLogCommand command)
         {
@@ -31,26 +34,38 @@ namespace SuperServerRIT.Controllers
             return CreatedAtAction(nameof(GetLogById), new { id = logId }, command);
         }
 
-        // GET: api/auditlog/{id}
+        /// <summary>
+        /// Получает запись аудита по идентификатору.
+        /// </summary>
+        /// <param name="id">Идентификатор записи аудита.</param>
+        /// <returns>Запись аудита с указанным идентификатором.</returns>
         [HttpGet("{id}")]
         public async Task<IActionResult> GetLogById(int id)
         {
-            var command = new GetAuditLogByIdCommand { LogID = id }; // Убедитесь, что такая команда существует
+            var command = new GetAuditLogByIdCommand { LogID = id };
             var log = await _mediator.Send(command);
 
             return log != null ? Ok(log) : NotFound("Запись аудита не найдена.");
         }
 
-        // GET: api/auditlog
+        /// <summary>
+        /// Получает все записи аудита.
+        /// </summary>
+        /// <returns>Список всех записей аудита.</returns>
         [HttpGet]
         public async Task<IActionResult> GetAllLogs()
         {
-            var command = new GetAllAuditLogsCommand(); // Убедитесь, что такая команда существует
+            var command = new GetAllAuditLogsCommand();
             var logs = await _mediator.Send(command);
             return Ok(logs);
         }
 
-        // PUT: api/auditlog/{id}
+        /// <summary>
+        /// Обновляет запись аудита.
+        /// </summary>
+        /// <param name="id">Идентификатор записи аудита для обновления.</param>
+        /// <param name="command">Команда для обновления записи аудита.</param>
+        /// <returns>Результат операции обновления.</returns>
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateLog(int id, [FromBody] UpdateAuditLogCommand command)
         {
@@ -63,7 +78,12 @@ namespace SuperServerRIT.Controllers
             return result ? NoContent() : NotFound("Запись аудита не найдена.");
         }
 
-        // PATCH: api/auditlog/{id}
+        /// <summary>
+        /// Частично обновляет запись аудита.
+        /// </summary>
+        /// <param name="id">Идентификатор записи аудита для обновления.</param>
+        /// <param name="patchDoc">Документ для частичного обновления.</param>
+        /// <returns>Результат операции частичного обновления.</returns>
         [HttpPatch("{id}")]
         public async Task<IActionResult> PatchLog(int id, [FromBody] JsonPatchDocument<UpdateAuditLogCommand> patchDoc)
         {
@@ -72,7 +92,7 @@ namespace SuperServerRIT.Controllers
                 return BadRequest("Запрос не может быть пустым.");
             }
 
-            var command = new UpdateAuditLogCommand { LogID = id }; // Убедитесь, что такая команда существует
+            var command = new UpdateAuditLogCommand { LogID = id };
             patchDoc.ApplyTo(command);
 
             if (!ModelState.IsValid)
@@ -84,11 +104,15 @@ namespace SuperServerRIT.Controllers
             return result ? NoContent() : NotFound("Запись аудита не найдена.");
         }
 
-        // DELETE: api/auditlog/{id}
+        /// <summary>
+        /// Удаляет запись аудита.
+        /// </summary>
+        /// <param name="id">Идентификатор записи аудита для удаления.</param>
+        /// <returns>Результат операции удаления.</returns>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteLog(int id)
         {
-            var command = new DeleteAuditLogCommand { LogID = id }; // Убедитесь, что такая команда существует
+            var command = new DeleteAuditLogCommand { LogID = id };
             var result = await _mediator.Send(command);
             return result ? NoContent() : NotFound("Запись аудита не найдена.");
         }

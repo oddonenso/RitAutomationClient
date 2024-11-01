@@ -1,5 +1,4 @@
-﻿// Controllers/EquipmentStatusController.cs
-using MediatR;
+﻿using MediatR;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using SuperServerRIT.Commands;
@@ -18,7 +17,11 @@ namespace SuperServerRIT.Controllers
             _mediator = mediator;
         }
 
-        // POST: api/equipment/status
+        /// <summary>
+        /// Добавляет новый статус оборудования.
+        /// </summary>
+        /// <param name="command">Команда для добавления статуса оборудования.</param>
+        /// <returns>Созданный статус оборудования.</returns>
         [HttpPost]
         public async Task<IActionResult> AddEquipmentStatus([FromBody] AddEquipmentStatusCommand command)
         {
@@ -33,7 +36,11 @@ namespace SuperServerRIT.Controllers
             return CreatedAtAction(nameof(GetEquipmentStatusById), new { id = equipmentStatusId }, command);
         }
 
-        // GET: api/equipment/status/{id}
+        /// <summary>
+        /// Получает статус оборудования по идентификатору.
+        /// </summary>
+        /// <param name="id">Идентификатор статуса оборудования.</param>
+        /// <returns>Статус оборудования с указанным идентификатором.</returns>
         [HttpGet("{id}")]
         public async Task<IActionResult> GetEquipmentStatusById(int id)
         {
@@ -48,7 +55,12 @@ namespace SuperServerRIT.Controllers
             return Ok(equipmentStatus);
         }
 
-       
+        /// <summary>
+        /// Обновляет статус оборудования.
+        /// </summary>
+        /// <param name="id">Идентификатор статуса оборудования для обновления.</param>
+        /// <param name="patchDoc">Документ для частичного обновления статуса.</param>
+        /// <returns>Результат операции обновления статуса оборудования.</returns>
         [HttpPatch("{id}")]
         public async Task<IActionResult> UpdateEquipmentStatus(int id, [FromBody] JsonPatchDocument<UpdateEquipmentStatusCommand> patchDoc)
         {
@@ -71,10 +83,14 @@ namespace SuperServerRIT.Controllers
                 return NotFound("Статус оборудования не найден.");
             }
 
-            return NoContent(); 
+            return NoContent();
         }
 
-       
+        /// <summary>
+        /// Удаляет статус оборудования.
+        /// </summary>
+        /// <param name="id">Идентификатор статуса оборудования для удаления.</param>
+        /// <returns>Результат операции удаления статуса оборудования.</returns>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteEquipmentStatus(int id)
         {
@@ -86,7 +102,7 @@ namespace SuperServerRIT.Controllers
                 return NotFound("Статус оборудования не найден.");
             }
 
-            return NoContent(); 
+            return NoContent();
         }
     }
 }

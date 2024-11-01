@@ -33,20 +33,18 @@ namespace SuperServerRIT.Handlers
                 if (user == null)
                 {
                     Console.WriteLine("Пользователь с таким email не найден.");
-                    throw new Exception("Неверный email или пароль");
+                    throw new Exception("Неверный email или пароль.");
                 }
 
                 if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
                 {
                     Console.WriteLine("Неверный пароль.");
-                    throw new Exception("Неверный email или пароль");
+                    throw new Exception("Неверный email или пароль.");
                 }
 
-                // Генерация токена
                 var token = _jwtService.GenerateJWT(user);
                 var refreshToken = GenerateRefreshToken();
 
-                // Обновление данных пользователя
                 user.RefreshToken = refreshToken;
                 user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(30);
                 await _connection.SaveChangesAsync();
@@ -58,15 +56,16 @@ namespace SuperServerRIT.Handlers
             }
             catch (DbUpdateException ex)
             {
-                Console.WriteLine($"Ошибка базы данных: {ex.Message}");
-                throw new Exception("Ошибка базы данных при попытке входа.");
+                Console.WriteLine($"Ошибка базы данных при обновлении пользователя: {ex.Message}");
+                throw new Exception("Ошибка базы данных. Обновление пользователя не удалось.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Ошибка при авторизации: {ex.Message}");
-                throw;
+                Console.WriteLine($"Ошибка при авторизации пользователя: {ex.Message}");
+                throw new Exception($"Ошибка при авторизации пользователя: {ex.Message}");
             }
         }
+
 
         private string GenerateRefreshToken()
         {

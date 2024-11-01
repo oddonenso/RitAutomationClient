@@ -1,5 +1,4 @@
-﻿
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using SuperServerRIT.Commands;
 using SuperServerRIT.Model;
@@ -19,6 +18,10 @@ namespace SuperServerRIT.Controllers
             _mediator = mediator;
         }
 
+        /// <summary>
+        /// Получает все уведомления.
+        /// </summary>
+        /// <returns>Список всех уведомлений.</returns>
         [HttpGet]
         public async Task<IActionResult> GetAllNotifications()
         {
@@ -27,6 +30,11 @@ namespace SuperServerRIT.Controllers
             return Ok(notifications);
         }
 
+        /// <summary>
+        /// Получает уведомление по идентификатору.
+        /// </summary>
+        /// <param name="id">Идентификатор уведомления.</param>
+        /// <returns>Уведомление с указанным идентификатором.</returns>
         [HttpGet("{id}")]
         public async Task<IActionResult> GetNotificationById(int id)
         {
@@ -41,13 +49,29 @@ namespace SuperServerRIT.Controllers
             return Ok(notification);
         }
 
+        /// <summary>
+        /// Добавляет новое уведомление.
+        /// </summary>
+        /// <param name="command">Команда для добавления уведомления.</param>
+        /// <returns>Созданное уведомление.</returns>
         [HttpPost]
         public async Task<IActionResult> AddNotification([FromBody] AddNotificationCommand command)
         {
+            if (command == null)
+            {
+                return BadRequest("Некорректные данные для уведомления.");
+            }
+
             var notificationId = await _mediator.Send(command);
             return CreatedAtAction(nameof(GetNotificationById), new { id = notificationId }, command);
         }
 
+        /// <summary>
+        /// Частично обновляет уведомление.
+        /// </summary>
+        /// <param name="id">Идентификатор уведомления для обновления.</param>
+        /// <param name="command">Команда для обновления уведомления.</param>
+        /// <returns>Результат операции обновления.</returns>
         [HttpPatch("{id}")]
         public async Task<IActionResult> PatchNotification(int id, [FromBody] UpdateNotificationCommand command)
         {
@@ -66,6 +90,11 @@ namespace SuperServerRIT.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// Удаляет уведомление по идентификатору.
+        /// </summary>
+        /// <param name="id">Идентификатор уведомления для удаления.</param>
+        /// <returns>Результат операции удаления.</returns>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteNotification(int id)
         {

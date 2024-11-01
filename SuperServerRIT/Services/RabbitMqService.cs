@@ -9,11 +9,12 @@ namespace SuperServerRIT.Services
     public class RabbitMqService : IDisposable
     {
         private readonly IConnection _connection;
-        private readonly IModel _model;
+        private readonly IModel _channel;
+        private const string QueueName = "equipment_status";
 
         public RabbitMqService()
         {
-            var factory = new ConnectionFactory()
+            var factory = new ConnectionFactory
             {
                 HostName = "localhost",
                 UserName = "guest",
@@ -21,67 +22,57 @@ namespace SuperServerRIT.Services
             };
 
             _connection = factory.CreateConnection();
-            _model = _connection.CreateModel();
-            _model.QueueDeclare(queue: "equipment_status", durable: false, exclusive: false, autoDelete: false, arguments: null);
+            _channel = _connection.CreateModel();
+            _channel.QueueDeclare(queue: QueueName, durable: false, exclusive: false, autoDelete: false, arguments: null);
         }
 
-        public void SendMessage(string message)
+        public void SendMessage<T>(T message)
         {
             try
             {
-                var body = Encoding.UTF8.GetBytes(message);
-                _model.BasicPublish(exchange: "", routingKey: "equipment_status", basicProperties: null, body: body);
-                Console.WriteLine($"[x] Отправлено {message}");
+                string messageJson = JsonSerializer.Serialize(message);
+                var body = Encoding.UTF8.GetBytes(messageJson);
+                _channel.BasicPublish(exchange: "", routingKey: QueueName, basicProperties: null, body: body);
+                Console.WriteLine($"[x] Sent: {messageJson}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Ошибка при отправке сообщения в RabbitMQ: {ex.Message}");
+                Console.WriteLine($"Error sending message to RabbitMQ: {ex.Message}");
             }
         }
 
-        public void ReceiveMessages(Action<string> onMessageReceived)
+        public void ReceiveMessages(Func<string, Task> onMessageReceivedAsync)
         {
-            var consumer = new EventingBasicConsumer(_model);
-            consumer.Received += (channel, ea) =>
+            var consumer = new EventingBasicConsumer(_channel);
+            consumer.Received += async (model, ea) =>
             {
                 var body = ea.Body.ToArray();
                 var message = Encoding.UTF8.GetString(body);
-                Console.WriteLine($"[x] Получено: {message}");
+                Console.WriteLine($"[x] Received: {message}");
 
                 try
                 {
-                    onMessageReceived?.Invoke(message);
-                 
-                    _model.BasicAck(ea.DeliveryTag, multiple: false);
+                    await onMessageReceivedAsync(message);
+                    _channel.BasicAck(ea.DeliveryTag, multiple: false);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Ошибка при обработке сообщения: {ex.Message}");
-                   
+                    Console.WriteLine($"Error processing message: {ex.Message}");
                 }
             };
 
-            try
-            {
-                _model.BasicConsume(queue: "equipment_status", autoAck: false, consumer: consumer);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Ошибка при получении сообщения из RabbitMQ: {ex.Message}");
-            }
+            _channel.BasicConsume(queue: QueueName, autoAck: false, consumer: consumer);
         }
-
 
         public void Dispose()
         {
-            if (_model?.IsOpen ?? false)
+            if (_channel?.IsOpen ?? false)
             {
-                _model.Close();
+                _channel.Close();
             }
-            _model?.Dispose();
+            _channel?.Dispose();
             _connection?.Dispose();
-            Console.WriteLine("RabbitMQ соединение закрыто.");
+            Console.WriteLine("RabbitMQ connection closed.");
         }
-
     }
 }
