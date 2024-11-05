@@ -23,31 +23,21 @@ namespace SuperServerRIT.Handlers
                 throw new NotFoundException($"Equipment with ID {request.EquipmentId} not found.");
             }
 
-            // Применяем изменения через JsonPatchDocument
             if (request.PatchDocument != null)
             {
+                
                 request.PatchDocument.ApplyTo(equipment);
+                var debugInfo = $"Updated equipment details:\nName: {equipment.Name}\nType: {equipment.Type}\nStatus: {equipment.Status}";
+                Console.WriteLine(debugInfo); 
             }
-
-            // Если поля Name, Status или Type не null, обновляем их
-            if (!string.IsNullOrEmpty(request.Name))
+            else
             {
-                equipment.Name = request.Name;
-            }
-
-            if (!string.IsNullOrEmpty(request.Status))
-            {
-                equipment.Status = request.Status;
-            }
-
-            if (!string.IsNullOrEmpty(request.Type))
-            {
-                equipment.Type = request.Type;
+                throw new ArgumentException("Patch document cannot be null or empty.");
             }
 
             await _repository.UpdateAsync(equipment);
             return $"Equipment with ID {request.EquipmentId} has been updated.";
         }
-    }
 
+    }
 }

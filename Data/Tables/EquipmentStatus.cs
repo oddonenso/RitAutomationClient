@@ -30,6 +30,12 @@ namespace Data.Tables
         [MaxLength(50)]
         public string Status { get; set; } = string.Empty;
 
-        public DateTime Timestamp { get; set; } 
+        public DateTime Timestamp { get; set; }
+
+        [Column(TypeName = "decimal(9,6)")]
+        public decimal Latitude { get; set; }
+
+        [Column(TypeName = "decimal(9,6)")]
+        public decimal Longitude { get; set; }
     }
 }

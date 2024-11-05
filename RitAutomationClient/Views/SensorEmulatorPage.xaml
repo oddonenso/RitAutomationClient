@@ -21,18 +21,22 @@
         </Border>
 
         <!-- Добавление оборудования -->
-        <StackPanel Grid.Row="1" Grid.Column="0" Margin="10">
+        <StackPanel x:Name="AddPanel" Grid.Row="1" Grid.Column="0" Margin="10">
             <TextBlock Text="Добавить оборудование" FontSize="18" FontWeight="Bold" Foreground="#333333" />
             <TextBlock Text="Название оборудования" FontSize="12" Foreground="Gray"/>
-            <TextBox x:Name="AddEquipmentNameTextBox" Height="35" Margin="0,5,0,10" Background="White" BorderBrush="#D32F2F"/>
+            <TextBox x:Name="AddEquipmentNameTextBox" Height="40" Margin="0,5,0,10" Background="White" 
+                     BorderBrush="#D32F2F" FontSize="14" Padding="5"/>
 
             <TextBlock Text="Тип оборудования" FontSize="12" Foreground="Gray"/>
-            <TextBox x:Name="AddEquipmentTypeTextBox" Height="35" Margin="0,5,0,10" Background="White" BorderBrush="#D32F2F"/>
+            <TextBox x:Name="AddEquipmentTypeTextBox" Height="40" Margin="0,5,0,10" Background="White" 
+                     BorderBrush="#D32F2F" FontSize="14" Padding="5"/>
 
             <TextBlock Text="Статус оборудования" FontSize="12" Foreground="Gray"/>
-            <TextBox x:Name="AddEquipmentStatusTextBox" Height="35" Margin="0,5,0,10" Background="White" BorderBrush="#D32F2F"/>
+            <TextBox x:Name="AddEquipmentStatusTextBox" Height="40" Margin="0,5,0,10" Background="White" 
+                     BorderBrush="#D32F2F" FontSize="14" Padding="5"/>
 
-            <Button Content="Добавить оборудование" Height="40" Background="#D32F2F" Foreground="White" Click="SubmitButton_Click"/>
+            <Button Content="Добавить оборудование" Height="40" Background="#D32F2F" Foreground="White" 
+                    Click="SubmitButton_Click" Margin="0,10,0,0"/>
         </StackPanel>
 
         <!-- Обновление оборудования -->
@@ -45,16 +49,19 @@
                       SelectedValuePath="EquipmentID" />
 
             <TextBlock Text="Название оборудования" FontSize="12" Foreground="Gray"/>
-            <TextBox x:Name="UpdateEquipmentNameTextBox" Height="35" Margin="0,5,0,10" Background="White" BorderBrush="#D32F2F"/>
-
+            <TextBox x:Name="UpdateEquipmentNameTextBox" Height="40" Margin="0,5,0,10" Background="White" 
+                     BorderBrush="#D32F2F" FontSize="14" Padding="5"/>
 
             <TextBlock Text="Тип оборудования" FontSize="12" Foreground="Gray"/>
-            <TextBox x:Name="UpdateEquipmentTypeTextBox" Height="35" Margin="0,5,0,10" Background="White" BorderBrush="#D32F2F"/>
+            <TextBox x:Name="UpdateEquipmentTypeTextBox" Height="40" Margin="0,5,0,10" Background="White" 
+                     BorderBrush="#D32F2F" FontSize="14" Padding="5"/>
 
             <TextBlock Text="Статус оборудования" FontSize="12" Foreground="Gray"/>
-            <TextBox x:Name="UpdateEquipmentStatusTextBox" Height="35" Margin="0,5,0,10" Background="White" BorderBrush="#D32F2F"/>
+            <TextBox x:Name="UpdateEquipmentStatusTextBox" Height="40" Margin="0,5,0,10" Background="White" 
+                     BorderBrush="#D32F2F" FontSize="14" Padding="5"/>
 
-            <Button Content="Обновить оборудование" Height="40" Background="#D32F2F" Foreground="White" Click="UpdateButton_Click"/>
+            <Button Content="Обновить оборудование" Height="40" Background="#D32F2F" Foreground="White" 
+                    Click="UpdateButton_Click" Margin="0,10,0,0"/>
         </StackPanel>
 
         <!-- Удаление оборудования -->
@@ -66,13 +73,14 @@
                       DisplayMemberPath="Name" 
                       SelectedValuePath="EquipmentID" />
 
-            <Button Content="Удалить оборудование" Height="40" Background="#D32F2F" Foreground="White" Click="DeleteButton_Click"/>
+            <Button Content="Удалить оборудование" Height="40" Background="#D32F2F" Foreground="White" 
+                    Click="DeleteButton_Click" Margin="0,10,0,0"/>
         </StackPanel>
 
         <!-- Карта для выбора координат -->
         <m:Map x:Name="SensorMap" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" 
                CredentialsProvider="Your_Bing_Maps_Key" 
-               Visibility="Collapsed" Margin="10"/>
+               Visibility="Collapsed" Margin="10" MouseLeftButtonUp="SensorMap_MouseLeftButtonUp"/>
 
         <!-- Выпадающий список для выбора опций карты -->
         <ComboBox x:Name="MapOptionsComboBox" Grid.Row="1" Grid.Column="0" 
@@ -83,6 +91,54 @@
 
         <!-- Кнопка для открытия/закрытия карты -->
         <Button x:Name="ToggleMapButton" Content="Открыть карту" Grid.Row="1" Grid.Column="0" Height="40" 
-                Background="#D32F2F" Foreground="White" Click="ToggleMapButton_Click"/>
+                Background="#D32F2F" Foreground="White" Click="ToggleMapButton_Click" Margin="0,10,0,0"/>
+
+        <!-- Поля для статуса оборудования -->
+        <StackPanel Grid.Row="1" Grid.Column="0" Margin="10" x:Name="StatusPanel" Visibility="Collapsed">
+
+            <!-- Температура -->
+            <TextBlock Text="Температура" FontSize="12" Foreground="Gray"/>
+            <TextBox x:Name="TemperatureTextBox" Height="40" Margin="0,5,0,10" Background="White" 
+             BorderBrush="#D32F2F" FontSize="14" Padding="5"/>
+
+            <!-- Давление -->
+            <TextBlock Text="Давление" FontSize="12" Foreground="Gray"/>
+            <TextBox x:Name="PressureTextBox" Height="40" Margin="0,5,0,10" Background="White" 
+             BorderBrush="#D32F2F" FontSize="14" Padding="5"/>
+
+            <!-- Широта -->
+            <TextBlock Text="Широта" FontSize="12" Foreground="Gray"/>
+            <TextBox x:Name="LatitudeTextBox" Height="40" Margin="0,5,0,10" Background="White" 
+             BorderBrush="#D32F2F" FontSize="14" Padding="5" IsReadOnly="True"/>
+
+            <!-- Долгота -->
+            <TextBlock Text="Долгота" FontSize="12" Foreground="Gray"/>
+            <TextBox x:Name="LongitudeTextBox" Height="40" Margin="0,5,0,10" Background="White" 
+             BorderBrush="#D32F2F" FontSize="14" Padding="5" IsReadOnly="True"/>
+
+            <!-- Местоположение (город) -->
+            <TextBlock Text="Местоположение (город)" FontSize="12" Foreground="Gray"/>
+            <TextBox x:Name="LocationTextBox" Height="40" Margin="0,5,0,10" Background="White" 
+             BorderBrush="#D32F2F" FontSize="14" Padding="5" IsReadOnly="True"/>
+
+            <!-- Выбор оборудования -->
+            <TextBlock Text="Выберите оборудование" FontSize="12" Foreground="Gray"/>
+            <ComboBox x:Name="EquipmentStatusComboBox" 
+              Margin="0,5,0,10" 
+              Width="300" 
+              SelectionChanged="EquipmentStatusComboBox_SelectionChanged" 
+              IsEditable="False"
+              DisplayMemberPath="Name"/>
+            <!-- Отображаемое поле - имя оборудования -->
+
+            <!-- Статус оборудования -->
+            <TextBlock Text="Статус" FontSize="12" Foreground="Gray"/>
+            <TextBox x:Name="StatusTextBox" Height="40" Margin="0,5,0,10" Background="White" 
+             BorderBrush="#D32F2F" FontSize="14" Padding="5"/>
+
+            <!-- Кнопка сохранения статуса -->
+            <Button Content="Сохранить статус" Height="40" Background="#D32F2F" Foreground="White"  
+            Click="SaveStatusButton_Click" Margin="0,10,0,0"/>
+        </StackPanel>
     </Grid>
 </Page>

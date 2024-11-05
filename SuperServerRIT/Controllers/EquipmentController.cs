@@ -69,9 +69,9 @@ namespace SuperServerRIT.Controllers
         /// <param name="updateDto">Данные для обновления оборудования.</param>
         /// <returns>Результат операции обновления оборудования.</returns>
         [HttpPatch("{id}")]
-        public async Task<IActionResult> UpdateEquipment(int id, [FromBody] UpdateEquipmentDto updateDto)
+        public async Task<IActionResult> UpdateEquipment(int id, [FromBody] JsonPatchDocument<Equipment> patchDoc)
         {
-            if (updateDto == null)
+            if (patchDoc == null)
             {
                 return BadRequest("Invalid update data.");
             }
@@ -79,9 +79,7 @@ namespace SuperServerRIT.Controllers
             var command = new UpdateEquipmentCommand
             {
                 EquipmentId = id,
-                Name = updateDto.Name,
-                Status = updateDto.Status,
-                Type = updateDto.Type
+                PatchDocument = patchDoc
             };
 
             try
@@ -89,10 +87,15 @@ namespace SuperServerRIT.Controllers
                 var result = await _mediator.Send(command);
                 return Ok(result);
             }
+            catch (NotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
+
     }
 }
