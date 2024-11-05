@@ -9,5 +9,7 @@
         public string Location { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
         public DateTime Timestamp { get; set; }
+        public decimal Latitude { get; set; }
+        public decimal Longitude { get; set; }
     }
 }

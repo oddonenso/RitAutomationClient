@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Data;
 using System.Text.Json;
 using SuperServerRIT.Model;
+using Data.Tables;
 
 namespace SuperServerRIT.Services
 {
@@ -20,9 +21,50 @@ namespace SuperServerRIT.Services
             _serviceScopeFactory = serviceScopeFactory;
         }
 
+        private async Task OnAlertMessageReceivedAsync(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                Console.WriteLine("Error: Received an empty alert message.");
+                return;
+            }
+
+            using (var scope = _serviceScopeFactory.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<Connection>();
+
+                try
+                {
+                    var alertData = JsonSerializer.Deserialize<AlertMessage>(message);
+
+                    Console.WriteLine($"Получено оповещение: {alertData.AlertType} - {alertData.Message}");
+
+                    // Сохраняем оповещение в таблицу Notification
+                    var alertRecord = new Notification
+                    {
+                        EquipmentID = alertData.EquipmentID,
+                        Message = $"{alertData.AlertType}: {alertData.Message}",
+                        Timestamp = alertData.Timestamp
+                    };
+                    dbContext.Notification.Add(alertRecord);
+                    await dbContext.SaveChangesAsync();
+                    Console.WriteLine("Оповещение сохранено в базу данных.");
+                }
+                catch (JsonException ex)
+                {
+                    Console.WriteLine($"JSON deserialization error: {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error processing alert message: {ex.Message}");
+                }
+            }
+        }
+
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _rabbitMqService.ReceiveMessages(OnMessageReceivedAsync);
+            _rabbitMqService.ReceiveAlertMessages(OnAlertMessageReceivedAsync);
             return Task.CompletedTask;
         }
 

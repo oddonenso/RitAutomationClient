@@ -22,7 +22,7 @@ namespace SuperServerRIT.Commands
 
         public async Task UpdateAsync(Equipment equipment)
         {
-            _context.Equipment.Update(equipment);
+            _context.Entry(equipment).State = EntityState.Modified;
             await _context.SaveChangesAsync();
         }
 

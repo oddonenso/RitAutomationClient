@@ -98,10 +98,16 @@ namespace Data.Migrations
                     b.Property<int>("EquipmentID")
                         .HasColumnType("integer");
 
+                    b.Property<decimal>("Latitude")
+                        .HasColumnType("decimal(9,6)");
+
                     b.Property<string>("Location")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("Longitude")
+                        .HasColumnType("decimal(9,6)");
 
                     b.Property<decimal>("Pressure")
                         .HasColumnType("numeric");

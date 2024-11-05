@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Data.Migrations
 {
     [DbContext(typeof(Connection))]
-    [Migration("20241017053545_Initiall")]
-    partial class Initiall
+    [Migration("20241105032759_initiall")]
+    partial class initiall
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -101,10 +101,16 @@ namespace Data.Migrations
                     b.Property<int>("EquipmentID")
                         .HasColumnType("integer");
 
+                    b.Property<decimal>("Latitude")
+                        .HasColumnType("decimal(9,6)");
+
                     b.Property<string>("Location")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("Longitude")
+                        .HasColumnType("decimal(9,6)");
 
                     b.Property<decimal>("Pressure")
                         .HasColumnType("numeric");

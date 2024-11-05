@@ -23,7 +23,12 @@ namespace SuperServerRIT.Services
 
             _connection = factory.CreateConnection();
             _channel = _connection.CreateModel();
-            _channel.QueueDeclare(queue: QueueName, durable: false, exclusive: false, autoDelete: false, arguments: null);
+
+            // Декларация очереди для статуса оборудования
+            _channel.QueueDeclare(queue: "equipment_status", durable: false, exclusive: false, autoDelete: false, arguments: null);
+
+            // Декларация очереди для оповещений
+            _channel.QueueDeclare(queue: "alert_queue", durable: false, exclusive: false, autoDelete: false, arguments: null);
         }
 
         public void SendMessage<T>(T message)
@@ -63,7 +68,43 @@ namespace SuperServerRIT.Services
 
             _channel.BasicConsume(queue: QueueName, autoAck: false, consumer: consumer);
         }
+        public void ReceiveAlertMessages(Func<string, Task> onAlertReceivedAsync)
+        {
+            var consumer = new EventingBasicConsumer(_channel);
+            consumer.Received += async (model, ea) =>
+            {
+                var body = ea.Body.ToArray();
+                var message = Encoding.UTF8.GetString(body);
+                Console.WriteLine($"[x] Alert Received: {message}");
 
+                try
+                {
+                    await onAlertReceivedAsync(message);
+                    _channel.BasicAck(ea.DeliveryTag, multiple: false);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error processing alert message: {ex.Message}");
+                }
+            };
+
+            _channel.BasicConsume(queue: "alert_queue", autoAck: false, consumer: consumer);
+        }
+
+        public void SendAlertMessage<T>(T message)
+        {
+            try
+            {
+                string messageJson = JsonSerializer.Serialize(message);
+                var body = Encoding.UTF8.GetBytes(messageJson);
+                _channel.BasicPublish(exchange: "", routingKey: "alert_queue", basicProperties: null, body: body);
+                Console.WriteLine($"[x] Alert Sent: {messageJson}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending alert message to RabbitMQ: {ex.Message}");
+            }
+        }
         public void Dispose()
         {
             if (_channel?.IsOpen ?? false)

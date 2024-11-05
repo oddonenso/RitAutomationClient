@@ -1,10 +1,6 @@
-﻿
-using MediatR;
-using Microsoft.Extensions.DependencyInjection;
-using System.Threading;
-using System.Threading.Tasks;
-using Data;
+﻿using Data;
 using Data.Tables;
+using MediatR;
 using SuperServerRIT.Commands;
 using SuperServerRIT.Services;
 
@@ -30,13 +26,15 @@ namespace SuperServerRIT.Handlers
                 Pressure = request.Pressure,
                 Location = request.Location,
                 Status = request.Status,
-                Timestamp = request.Timestamp
+                Timestamp = request.Timestamp,
+                Latitude = request.Latitude,
+                Longitude = request.Longitude
             };
 
             _connection.EquipmentStatus.Add(equipmentStatus);
             await _connection.SaveChangesAsync();
 
-            // Отправка сообщения в RabbitMQ
+           
             var message = $"Добавлен статус оборудования: {equipmentStatus.EquipmentStatusID}";
             _rabbitMqService.SendMessage(message);
 
