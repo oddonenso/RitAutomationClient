@@ -36,7 +36,7 @@ namespace SuperServerRIT.Handlers
                     Temperature = equipmentStatus.Temperature,
                     Pressure = equipmentStatus.Pressure,
                     Location = equipmentStatus.Location,
-                    Status = equipmentStatus.Status,
+                   // Status = equipmentStatus.Status,
                     Timestamp = equipmentStatus.Timestamp
                 };
             }

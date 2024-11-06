@@ -23,12 +23,12 @@ namespace Data.Tables
         [MaxLength(50)]
         public string LastName { get; set; } = string.Empty;
 
-        [MaxLength(100)]
+        [MaxLength(50)]
         public string Patronymic { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(65355)]
-        public string Password { get; set; } = string.Empty;
+        [MaxLength(1000)]
+        public string PasswordHash { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(255)]

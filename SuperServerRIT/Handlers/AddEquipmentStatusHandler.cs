@@ -19,13 +19,14 @@ namespace SuperServerRIT.Handlers
 
         public async Task<int> Handle(AddEquipmentStatusCommand request, CancellationToken cancellationToken)
         {
+            Console.WriteLine($"Обрабатываем статус для оборудования с ID: {request.EquipmentID}");
+
             var equipmentStatus = new EquipmentStatus
             {
                 EquipmentID = request.EquipmentID,
                 Temperature = request.Temperature,
                 Pressure = request.Pressure,
                 Location = request.Location,
-                Status = request.Status,
                 Timestamp = request.Timestamp,
                 Latitude = request.Latitude,
                 Longitude = request.Longitude
@@ -34,11 +35,9 @@ namespace SuperServerRIT.Handlers
             _connection.EquipmentStatus.Add(equipmentStatus);
             await _connection.SaveChangesAsync();
 
-           
-            var message = $"Добавлен статус оборудования: {equipmentStatus.EquipmentStatusID}";
-            _rabbitMqService.SendMessage(message);
-
+            _rabbitMqService.SendMessage(equipmentStatus);
             return equipmentStatus.EquipmentStatusID;
         }
+
     }
 }

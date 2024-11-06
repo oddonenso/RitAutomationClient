@@ -26,8 +26,7 @@ namespace SuperServerRIT.Controllers
         public async Task<IActionResult> AddEquipmentStatus([FromBody] AddEquipmentStatusCommand command)
         {
             if (command == null || command.EquipmentID <= 0 ||
-                string.IsNullOrWhiteSpace(command.Location) ||
-                string.IsNullOrWhiteSpace(command.Status))
+                string.IsNullOrWhiteSpace(command.Location))
             {
                 return BadRequest("Неверные данные статуса оборудования.");
             }

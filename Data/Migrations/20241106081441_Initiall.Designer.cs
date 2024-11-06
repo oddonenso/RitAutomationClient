@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Data.Migrations
 {
     [DbContext(typeof(Connection))]
-    [Migration("20241105032759_initiall")]
-    partial class initiall
+    [Migration("20241106081441_Initiall")]
+    partial class Initiall
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -74,17 +74,17 @@ namespace Data.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                    b.Property<int>("StatusId")
+                        .HasColumnType("integer");
 
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                    b.Property<int>("TypeId")
+                        .HasColumnType("integer");
 
                     b.HasKey("EquipmentID");
+
+                    b.HasIndex("StatusId");
+
+                    b.HasIndex("TypeId");
 
                     b.ToTable("Equipment");
                 });
@@ -114,11 +114,6 @@ namespace Data.Migrations
 
                     b.Property<decimal>("Pressure")
                         .HasColumnType("numeric");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
 
                     b.Property<decimal>("Temperature")
                         .HasColumnType("numeric");
@@ -179,6 +174,44 @@ namespace Data.Migrations
                     b.ToTable("Roles");
                 });
 
+            modelBuilder.Entity("Data.Tables.Status", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("ID");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ID"));
+
+                    b.Property<string>("statusName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("Status");
+                });
+
+            modelBuilder.Entity("Data.Tables.Type", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("ID");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ID"));
+
+                    b.Property<string>("typeName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("Type");
+                });
+
             modelBuilder.Entity("Data.Tables.User", b =>
                 {
                     b.Property<int>("UserID")
@@ -206,15 +239,15 @@ namespace Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<string>("Password")
+                    b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasMaxLength(65355)
-                        .HasColumnType("character varying(65355)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("Patronymic")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("RefreshToken")
                         .IsRequired()
@@ -243,6 +276,25 @@ namespace Data.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Data.Tables.Equipment", b =>
+                {
+                    b.HasOne("Data.Tables.Status", "Status")
+                        .WithMany("Equipments")
+                        .HasForeignKey("StatusId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Data.Tables.Type", "Type")
+                        .WithMany("Equipments")
+                        .HasForeignKey("TypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Status");
+
+                    b.Navigation("Type");
                 });
 
             modelBuilder.Entity("Data.Tables.EquipmentStatus", b =>
@@ -286,6 +338,16 @@ namespace Data.Migrations
             modelBuilder.Entity("Data.Tables.Role", b =>
                 {
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("Data.Tables.Status", b =>
+                {
+                    b.Navigation("Equipments");
+                });
+
+            modelBuilder.Entity("Data.Tables.Type", b =>
+                {
+                    b.Navigation("Equipments");
                 });
 #pragma warning restore 612, 618
         }

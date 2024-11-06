@@ -29,7 +29,7 @@ namespace SuperServerRIT.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateEquipment([FromBody] CreateEquipmentCommand command)
         {
-            if (command == null || string.IsNullOrWhiteSpace(command.Name) || string.IsNullOrWhiteSpace(command.Type))
+            if (command == null || string.IsNullOrWhiteSpace(command.Name) || command.TypeId == 0)
             {
                 return BadRequest("Invalid equipment data.");
             }
@@ -37,6 +37,9 @@ namespace SuperServerRIT.Controllers
             var result = await _mediator.Send(command);
             return Ok(result);
         }
+
+
+
 
         /// <summary>
         /// Получает все оборудование.
@@ -61,6 +64,23 @@ namespace SuperServerRIT.Controllers
             var result = await _mediator.Send(command);
             return Ok(result);
         }
+
+        [HttpGet("EquipmentType")]
+        public async Task<IActionResult> GetEquipmentTypes()
+        {
+            var types = await _mediator.Send(new GetEquipmentTypesQuery());
+            return Ok(types);
+        }
+
+
+        // Получение списка статусов оборудования
+        [HttpGet("EquipmentStatus")]
+        public async Task<IActionResult> GetEquipmentStatuses()
+        {
+            var statuses = await _mediator.Send(new GetEquipmentStatusesQuery());
+            return Ok(statuses);
+        }
+
 
         /// <summary>
         /// Обновляет данные оборудования.

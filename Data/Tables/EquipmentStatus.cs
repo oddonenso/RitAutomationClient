@@ -27,8 +27,6 @@ namespace Data.Tables
         [MaxLength(100)]
         public string Location { get; set; } = string.Empty;
 
-        [MaxLength(50)]
-        public string Status { get; set; } = string.Empty;
 
         public DateTime Timestamp { get; set; }
 

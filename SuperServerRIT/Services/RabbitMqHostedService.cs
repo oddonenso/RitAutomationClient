@@ -7,6 +7,7 @@ using Data;
 using System.Text.Json;
 using SuperServerRIT.Model;
 using Data.Tables;
+using Microsoft.EntityFrameworkCore;
 
 namespace SuperServerRIT.Services
 {
@@ -35,16 +36,15 @@ namespace SuperServerRIT.Services
 
                 try
                 {
-                    var alertData = JsonSerializer.Deserialize<AlertMessage>(message);
+                    var equipmentStatusDto = JsonSerializer.Deserialize<EquipmentStatusDto>(message);
 
-                    Console.WriteLine($"Получено оповещение: {alertData.AlertType} - {alertData.Message}");
+                    Console.WriteLine($"Получено оповещение: {equipmentStatusDto.Type} - {equipmentStatusDto.Message}");
 
-                    // Сохраняем оповещение в таблицу Notification
                     var alertRecord = new Notification
                     {
-                        EquipmentID = alertData.EquipmentID,
-                        Message = $"{alertData.AlertType}: {alertData.Message}",
-                        Timestamp = alertData.Timestamp
+                        EquipmentID = equipmentStatusDto.EquipmentID,
+                        Message = $"{equipmentStatusDto.Status}: {equipmentStatusDto.Message}",
+                        Timestamp = equipmentStatusDto.Timestamp
                     };
                     dbContext.Notification.Add(alertRecord);
                     await dbContext.SaveChangesAsync();
@@ -95,9 +95,18 @@ namespace SuperServerRIT.Services
                         var equipment = await dbContext.Equipment.FindAsync(equipmentData.EquipmentId);
                         if (equipment != null)
                         {
-                            equipment.Status = equipmentData.Status;
-                            await dbContext.SaveChangesAsync();
-                            Console.WriteLine($"Updated status for equipment {equipment.Name} to {equipment.Status}");
+                            // Находим статус по имени, полученному из сообщения
+                            var status = await dbContext.Status.FirstOrDefaultAsync(s => s.statusName == equipmentData.Status);
+                            if (status != null)
+                            {
+                                equipment.Status = status;
+                                await dbContext.SaveChangesAsync();
+                                Console.WriteLine($"Updated status for equipment {equipment.Name} to {status.statusName}");
+                            }
+                            else
+                            {
+                                Console.WriteLine($"Status {equipmentData.Status} not found.");
+                            }
                         }
                         else
                         {
@@ -115,5 +124,6 @@ namespace SuperServerRIT.Services
                 }
             }
         }
+
     }
 }
