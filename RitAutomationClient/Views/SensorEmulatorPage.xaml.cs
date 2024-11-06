@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -21,19 +22,117 @@ namespace RitAutomationClient.Views
     {
         private readonly JwtService _jwtService;
         private Pushpin _pushpin;
-        private readonly HttpClient _client = new HttpClient { BaseAddress = new Uri("https://localhost:7183/api/") };
-
-
-      
+        private readonly HttpClient _client;
         private RabbitMqService RabbitMqService => _rabbitMqService ??= new RabbitMqService();
         private RabbitMqService _rabbitMqService;
+
+        private readonly string _apiBaseUrl;
 
         public SensorEmulatorPage(JwtService jwtService)
         {
             InitializeComponent();
             _jwtService = jwtService;
+            _apiBaseUrl = ConfigurationManager.AppSettings["ApiBaseUrl"] ?? throw new Exception("API base URL not configured");
+            _client = new HttpClient { BaseAddress = new Uri(_apiBaseUrl) };  
             LoadEquipmentList();
+            LoadEquipmentTypes();
+            LoadEquipmentStatuses();
         }
+
+        private async void LoadEquipmentTypes()
+        {
+            try
+            {
+                string apiBaseUrl = ConfigurationManager.AppSettings["ApiBaseUrl"];
+                string typesUrl = $"{apiBaseUrl}EquipmentInfo/EquipmentTypes";
+                _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _jwtService.GetTokenFromStorage());
+
+                var typeResponse = await _client.GetAsync(typesUrl);
+                if (typeResponse.IsSuccessStatusCode)
+                {
+                    var typeContent = await typeResponse.Content.ReadAsStringAsync();
+                    var types = JsonSerializer.Deserialize<List<Data.Tables.Type>>(typeContent, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+                    if (types != null && types.Count > 0)
+                    {
+                        AddEquipmentTypeComboBox.ItemsSource = types;
+                        UpdateEquipmentTypeComboBox.ItemsSource = types;
+                    }
+                }
+                else
+                {
+                    MessageBox.Show($"Ошибка загрузки типов оборудования: {typeResponse.StatusCode}");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Ошибка загрузки типов оборудования: " + ex.Message);
+            }
+        }
+
+        private async void LoadEquipmentStatuses()
+        {
+            try
+            {
+                string apiBaseUrl = ConfigurationManager.AppSettings["ApiBaseUrl"];
+                string statusesUrl = $"{apiBaseUrl}EquipmentInfo/EquipmentStatuses";
+                _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _jwtService.GetTokenFromStorage());
+
+                var statusResponse = await _client.GetAsync(statusesUrl);
+                if (statusResponse.IsSuccessStatusCode)
+                {
+                    var statusContent = await statusResponse.Content.ReadAsStringAsync();
+                    var statuses = JsonSerializer.Deserialize<List<Data.Tables.Status>>(statusContent, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+                    if (statuses != null && statuses.Count > 0)
+                    {
+                        AddEquipmentStatusComboBox.ItemsSource = statuses;
+                        UpdateEquipmentStatusComboBox.ItemsSource = statuses;
+                    }
+                }
+                else
+                {
+                    MessageBox.Show($"Ошибка загрузки статусов оборудования: {statusResponse.StatusCode}");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Ошибка загрузки статусов оборудования: " + ex.Message);
+            }
+        }
+
+
+
+
+        private void LogoutButton_Click(object sender, RoutedEventArgs e)
+        {
+            var result = MessageBox.Show("Вы уверены, что хотите выйти?", "Подтверждение выхода", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                NavigationService.Navigate(new LoginPage(_jwtService));
+            }
+        }
+
+        private async void AddEquipmentTypeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            LoadEquipmentTypes();
+            if (AddEquipmentStatusComboBox.SelectedItem is Data.Tables.Type selectedEquipment)
+            {
+                UpdateEquipmentStatusComboBox.Text = selectedEquipment.typeName;
+            }
+        }
+
+        private async void AddEquipmentStatusComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            LoadEquipmentStatuses();
+            if (AddEquipmentStatusComboBox.SelectedItem is Status selectedEquipment)
+            {
+                UpdateEquipmentStatusComboBox.Text = selectedEquipment.statusName;
+            }
+        }
+
+
 
         private async void LoadEquipmentList()
         {
@@ -41,7 +140,6 @@ namespace RitAutomationClient.Views
             {
                 string token = _jwtService.GetTokenFromStorage();
                 _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
                 var response = await _client.GetAsync("Equipment");
 
                 if (!response.IsSuccessStatusCode)
@@ -56,39 +154,37 @@ namespace RitAutomationClient.Views
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 });
 
-                if (equipmentList != null && equipmentList.Count > 0)
+                if (equipmentList != null)
                 {
-                    // Очищаем предыдущие данные
-                    EquipmentStatusComboBox.ItemsSource = null;
-                    UpdateEquipmentComboBox.ItemsSource = null;
-                    DeleteEquipmentComboBox.ItemsSource = null;
-
-                    // Назначаем новый список
                     EquipmentStatusComboBox.ItemsSource = equipmentList;
                     UpdateEquipmentComboBox.ItemsSource = equipmentList;
                     DeleteEquipmentComboBox.ItemsSource = equipmentList;
-
-                    EquipmentStatusComboBox.DisplayMemberPath = "Name";
-                    UpdateEquipmentComboBox.DisplayMemberPath = "Name";
-                    DeleteEquipmentComboBox.DisplayMemberPath = "Name";
-
-                    EquipmentStatusComboBox.SelectedIndex = 0;
-                    UpdateEquipmentComboBox.SelectedIndex = 0;
-                    DeleteEquipmentComboBox.SelectedIndex = 0;
+                }
+                else
+                {
+                    MessageBox.Show("Не удалось десериализовать список оборудования.");
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Ошибка: " + ex.Message);
+                MessageBox.Show("Ошибка загрузки списка оборудования: " + ex.Message);
             }
         }
+      
+        private async void EquipmentStatusComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+           LoadEquipmentList();
 
-
+            if (EquipmentStatusComboBox.SelectedItem is Equipment selectedEquipment)
+            {
+                UpdateEquipmentStatusComboBox.Text = selectedEquipment.Status?.statusName;
+            }
+        }
         private async void SubmitButton_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrWhiteSpace(AddEquipmentNameTextBox.Text) ||
-                string.IsNullOrWhiteSpace(AddEquipmentTypeTextBox.Text) ||
-                string.IsNullOrWhiteSpace(AddEquipmentStatusTextBox.Text))
+                AddEquipmentTypeComboBox.SelectedItem == null ||
+                AddEquipmentStatusComboBox.SelectedItem == null)
             {
                 MessageBox.Show("Пожалуйста, заполните все поля.");
                 return;
@@ -97,37 +193,30 @@ namespace RitAutomationClient.Views
             var newEquipment = new CreateEquipmentCommand
             {
                 Name = AddEquipmentNameTextBox.Text.Trim(),
-                Type = AddEquipmentTypeTextBox.Text.Trim(),
-                Status = AddEquipmentStatusTextBox.Text.Trim()
+                TypeId = (int)AddEquipmentTypeComboBox.SelectedValue,
+                StatusId = (int)AddEquipmentStatusComboBox.SelectedValue
             };
 
-            using (var client = new HttpClient())
+            try
             {
-                client.BaseAddress = new Uri("https://localhost:7183/api/");
-                string token;
+                _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _jwtService.GetTokenFromStorage());
+                var content = new StringContent(JsonSerializer.Serialize(newEquipment), Encoding.UTF8, "application/json");
 
-                try
+                var response = await _client.PostAsync("Equipment", content);
+                if (response.IsSuccessStatusCode)
                 {
-                    token = _jwtService.GetTokenFromStorage();
-                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                    var content = new StringContent(JsonSerializer.Serialize(newEquipment), Encoding.UTF8, "application/json");
-
-                    var response = await client.PostAsync("Equipment", content);
-                    if (response.IsSuccessStatusCode)
-                    {
-                        MessageBox.Show("Оборудование успешно добавлено.");
-                        LoadEquipmentList();
-                    }
-                    else
-                    {
-                        var errorMessage = await response.Content.ReadAsStringAsync();
-                        MessageBox.Show($"Ошибка добавления оборудования: {response.StatusCode} - {errorMessage}");
-                    }
+                    MessageBox.Show("Оборудование успешно добавлено.");
+                    LoadEquipmentList();
                 }
-                catch (Exception ex)
+                else
                 {
-                    MessageBox.Show("Ошибка добавления оборудования: " + ex.Message);
+                    var errorMessage = await response.Content.ReadAsStringAsync();
+                    MessageBox.Show($"Ошибка добавления оборудования: {response.StatusCode} - {errorMessage}");
                 }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Ошибка добавления оборудования: " + ex.Message);
             }
         }
 
@@ -138,39 +227,31 @@ namespace RitAutomationClient.Views
                 try
                 {
                     selectedEquipment.Name = UpdateEquipmentNameTextBox.Text.Trim();
-                    selectedEquipment.Type = UpdateEquipmentTypeTextBox.Text.Trim();
-                    selectedEquipment.Status = UpdateEquipmentStatusTextBox.Text.Trim();
+                    selectedEquipment.TypeId = (int)UpdateEquipmentTypeComboBox.SelectedValue;
+                    selectedEquipment.StatusId = (int)UpdateEquipmentStatusComboBox.SelectedValue;
 
-                    // Создаем команду для обновления
                     var patchDoc = new JsonPatchDocument<Equipment>();
-                    if (!string.IsNullOrEmpty(selectedEquipment.Name))
-                        patchDoc.Replace(e => e.Name, selectedEquipment.Name);
-                    if (!string.IsNullOrEmpty(selectedEquipment.Type))
-                        patchDoc.Replace(e => e.Type, selectedEquipment.Type);
-                    if (!string.IsNullOrEmpty(selectedEquipment.Status))
-                        patchDoc.Replace(e => e.Status, selectedEquipment.Status);
+                    patchDoc.Replace(e => e.Name, selectedEquipment.Name);
+                    patchDoc.Replace(e => e.TypeId, selectedEquipment.TypeId);
+                    patchDoc.Replace(e => e.StatusId, selectedEquipment.StatusId);
 
-                    // Используем локально инициализированный HttpClient
-                    using (var client = new HttpClient { BaseAddress = new Uri("https://localhost:7183/api/") })
+                    _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _jwtService.GetTokenFromStorage());
+                    var request = new HttpRequestMessage(HttpMethod.Patch, $"Equipment/{selectedEquipment.EquipmentID}")
                     {
-                        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _jwtService.GetTokenFromStorage());
-                        var request = new HttpRequestMessage(HttpMethod.Patch, $"Equipment/{selectedEquipment.EquipmentID}")
-                        {
-                            Content = new StringContent(JsonSerializer.Serialize(patchDoc), Encoding.UTF8, "application/json")
-                        };
+                        Content = new StringContent(JsonSerializer.Serialize(patchDoc), Encoding.UTF8, "application/json")
+                    };
 
-                        var response = await client.SendAsync(request);
+                    var response = await _client.SendAsync(request);
 
-                        if (response.IsSuccessStatusCode)
-                        {
-                            MessageBox.Show("Оборудование успешно обновлено.");
-                            LoadEquipmentList();
-                        }
-                        else
-                        {
-                            var errorMessage = await response.Content.ReadAsStringAsync();
-                            MessageBox.Show($"Ошибка обновления оборудования: {response.StatusCode} - {errorMessage}");
-                        }
+                    if (response.IsSuccessStatusCode)
+                    {
+                        MessageBox.Show("Оборудование успешно обновлено.");
+                        LoadEquipmentList();
+                    }
+                    else
+                    {
+                        var errorMessage = await response.Content.ReadAsStringAsync();
+                        MessageBox.Show($"Ошибка обновления оборудования: {response.StatusCode} - {errorMessage}");
                     }
                 }
                 catch (Exception ex)
@@ -179,9 +260,6 @@ namespace RitAutomationClient.Views
                 }
             }
         }
-
-
-
 
         private async void DeleteButton_Click(object sender, RoutedEventArgs e)
         {
@@ -195,7 +273,7 @@ namespace RitAutomationClient.Views
                     if (response.IsSuccessStatusCode)
                     {
                         MessageBox.Show("Оборудование успешно удалено.");
-                        LoadEquipmentList();  // Перезагружаем данные
+                        LoadEquipmentList();
                     }
                     else
                     {
@@ -209,56 +287,23 @@ namespace RitAutomationClient.Views
                 }
             }
         }
-
-
         private void MapOptionsComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (MapOptionsComboBox.SelectedItem is ComboBoxItem selectedItem)
             {
-                if (selectedItem.Content.ToString() == "Показать карту")
-                {
-                    SensorMap.Visibility = Visibility.Visible;
-                }
-                else
-                {
-                    SensorMap.Visibility = Visibility.Collapsed;
-                }
+                SensorMap.Visibility = selectedItem.Content.ToString() == "Показать карту" ? Visibility.Visible : Visibility.Collapsed;
             }
         }
 
         private void ToggleMapButton_Click(object sender, RoutedEventArgs e)
         {
-            if (SensorMap.Visibility == Visibility.Visible)
-            {
-                SensorMap.Visibility = Visibility.Collapsed;
-                ToggleMapButton.Content = "Открыть карту";
-
-
-                StatusPanel.Visibility = Visibility.Collapsed;
-                UpdatePanel.Visibility = Visibility.Visible;
-                DeletePanel.Visibility = Visibility.Visible;
-                AddPanel.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                SensorMap.Visibility = Visibility.Visible;
-                ToggleMapButton.Content = "Скрыть карту";
-
-
-                StatusPanel.Visibility = Visibility.Visible;
-                UpdatePanel.Visibility = Visibility.Collapsed;
-                DeletePanel.Visibility = Visibility.Collapsed;
-                AddPanel.Visibility = Visibility.Collapsed;
-            }
+            SensorMap.Visibility = SensorMap.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+            ToggleMapButton.Content = SensorMap.Visibility == Visibility.Visible ? "Скрыть карту" : "Открыть карту";
+            StatusPanel.Visibility = SensorMap.Visibility == Visibility.Visible ? Visibility.Visible : Visibility.Collapsed;
+            UpdatePanel.Visibility = DeletePanel.Visibility = AddPanel.Visibility = SensorMap.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
         }
 
-        private void EquipmentStatusComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (EquipmentStatusComboBox.SelectedItem is Equipment selectedEquipment)
-            {
-                StatusTextBox.Text = selectedEquipment.Status;
-            }
-        }
+     
 
         private void SensorMap_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
@@ -274,35 +319,31 @@ namespace RitAutomationClient.Views
             LatitudeTextBox.Text = $"{location.Latitude:F6}";
             LongitudeTextBox.Text = $"{location.Longitude:F6}";
 
-
-            var city = GetCityByCoordinates(location.Latitude, location.Longitude); 
+            var city = GetCityByCoordinates(location.Latitude, location.Longitude);
             LocationTextBox.Text = city;
         }
 
         private async void SaveStatusButton_Click(object sender, RoutedEventArgs e)
         {
-            decimal temperature, pressure, latitude, longitude;
-
-            // Проверка и парсинг значений
-            if (!decimal.TryParse(TemperatureTextBox.Text, out temperature))
+            if (!decimal.TryParse(TemperatureTextBox.Text, out var temperature))
             {
                 MessageBox.Show("Некорректное значение температуры.");
                 return;
             }
 
-            if (!decimal.TryParse(PressureTextBox.Text, out pressure))
+            if (!decimal.TryParse(PressureTextBox.Text, out var pressure))
             {
                 MessageBox.Show("Некорректное значение давления.");
                 return;
             }
 
-            if (!decimal.TryParse(LatitudeTextBox.Text, out latitude))
+            if (!decimal.TryParse(LatitudeTextBox.Text, out var latitude))
             {
                 MessageBox.Show("Некорректное значение широты.");
                 return;
             }
 
-            if (!decimal.TryParse(LongitudeTextBox.Text, out longitude))
+            if (!decimal.TryParse(LongitudeTextBox.Text, out var longitude))
             {
                 MessageBox.Show("Некорректное значение долготы.");
                 return;
@@ -315,123 +356,62 @@ namespace RitAutomationClient.Views
             }
 
             int equipmentID = selectedEquipment.EquipmentID;
-            bool isTemperatureOutOfRange = temperature > 100 || temperature < -50;
-            bool isPressureOutOfRange = pressure > 300 || pressure < 50;
 
-            // Обработка случаев некорректных значений температуры или давления
+            bool isTemperatureOutOfRange = temperature > 100 || temperature < -50;
+            bool isPressureOutOfRange = pressure > 1013 || pressure < 860;
+
             if (isTemperatureOutOfRange || isPressureOutOfRange)
             {
-                var alertMessage = new AlertMessage
+                var alertMessage = new EquipmentStatusDto
                 {
                     EquipmentID = equipmentID,
                     Temperature = temperature,
                     Pressure = pressure,
-                    Location = LocationTextBox.Text,
-                    Latitude = latitude,
                     Longitude = longitude,
-                    Timestamp = DateTime.UtcNow,
-                    AlertType = isTemperatureOutOfRange ? "Температура" : "Давление",
-                    Message = isTemperatureOutOfRange
-                        ? "Температура вне допустимого диапазона"
-                        : "Давление вне допустимого диапазона"
+                    Latitude = latitude,
+                    Timestamp = DateTime.Now,
+                    Type = "Warning",
+                    Message = "Параметры температуры или давления вне допустимых значений."
                 };
 
-                try
-                {
-                    RabbitMqService.SendAlertMessage(alertMessage);
-                    MessageBox.Show("Обнаружены некорректные данные. Сообщение отправлено в очередь RabbitMQ.");
-                    ClearStatusInputs();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Ошибка отправки сообщения: " + ex.Message);
-                }
-                return;
+                RabbitMqService.SendAlertMessage(alertMessage);
+                MessageBox.Show("Сообщение об оповещении отправлено в RabbitMQ.");
             }
-
-            // Создание и отправка статуса оборудования
-            var statusMessage = new AddEquipmentStatusCommand
+            else
             {
-                EquipmentID = equipmentID,
-                Temperature = temperature,
-                Pressure = pressure,
-                Location = LocationTextBox.Text,
-                Status = StatusTextBox.Text,
-                Latitude = latitude,
-                Longitude = longitude,
-                Timestamp = DateTime.UtcNow
-            };
-
-            var debugMessage = $"Отправляемые данные:\n" +
-                               $"Оборудование ID: {equipmentID}\n" +
-                               $"Температура: {temperature}\n" +
-                               $"Давление: {pressure}\n" +
-                               $"Местоположение: {LocationTextBox.Text}\n" +
-                               $"Статус: {StatusTextBox.Text}\n" +
-                               $"Широта: {latitude}\n" +
-                               $"Долгота: {longitude}";
-            MessageBox.Show(debugMessage);
-
-            using (var client = new HttpClient())
-            {
-                client.BaseAddress = new Uri("https://localhost:7183/api/");
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _jwtService.GetTokenFromStorage());
-
-                try
+                var sensorData = new AddEquipmentStatusCommand
                 {
-                    var content = new StringContent(JsonSerializer.Serialize(statusMessage), Encoding.UTF8, "application/json");
-                    var response = await client.PostAsync("EquipmentStatus", content);
+                    EquipmentID = equipmentID,
+                    Temperature = temperature,
+                    Pressure = pressure,
+                    Longitude = longitude,
+                    Latitude = latitude,
+                    Location = "LocationNotSpecified",
+                    
+                };
 
-                    if (response.IsSuccessStatusCode)
-                    {
-                        MessageBox.Show("Статус оборудования сохранен.");
-                        ClearStatusInputs();
-                    }
-                    else
-                    {
-                        var errorMessage = await response.Content.ReadAsStringAsync();
+                _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _jwtService.GetTokenFromStorage());
+                var content = new StringContent(JsonSerializer.Serialize(sensorData), Encoding.UTF8, "application/json");
 
-                        // Попытка вывести детализированную информацию об ошибке
-                        try
-                        {
-                            var errorDetails = JsonSerializer.Deserialize<Dictionary<string, string>>(errorMessage);
-                            StringBuilder detailedError = new StringBuilder("Ошибка при добавлении данных статуса:\n");
+                var response = await _client.PostAsync("EquipmentStatus", content);
 
-                            foreach (var detail in errorDetails)
-                            {
-                                detailedError.AppendLine($"{detail.Key}: {detail.Value}");
-                            }
-
-                            MessageBox.Show(detailedError.ToString());
-                        }
-                        catch
-                        {
-                            MessageBox.Show($"Ошибка обновления статуса оборудования: {response.StatusCode} - {errorMessage}");
-                        }
-                    }
+                if (response.IsSuccessStatusCode)
+                {
+                    MessageBox.Show("Статус успешно сохранен в базе данных.");
                 }
-                catch (Exception ex)
+                else
                 {
-                    MessageBox.Show("Ошибка при отправке запроса на сервер: " + ex.Message);
+                    var errorMessage = await response.Content.ReadAsStringAsync();
+                    MessageBox.Show($"Ошибка сохранения статуса: {response.StatusCode} - {errorMessage}");
                 }
             }
         }
+        
 
+            private string GetCityByCoordinates(double latitude, double longitude)
+            {
 
-
-        private void ClearStatusInputs()
-        {
-            TemperatureTextBox.Clear();
-            PressureTextBox.Clear();
-            LatitudeTextBox.Clear();
-            LongitudeTextBox.Clear();
-            LocationTextBox.Clear();
-        }
-
-        private string GetCityByCoordinates(double latitude, double longitude)
-        {
-            // Метод получения города по координатам с использованием внешнего API
-            return "Город (пример)";
+                return "Gород";
+            }
         }
     }
-}

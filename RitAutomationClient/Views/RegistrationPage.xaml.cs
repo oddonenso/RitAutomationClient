@@ -12,14 +12,18 @@ namespace RitAutomationClient.Views
 {
     public partial class RegistrationPage : Page
     {
-        private static readonly string ApiUrl = "https://localhost:7183/api/auth/register"; // Замените на URL вашего API
+        private static readonly string ApiUrl = "https://localhost:7183/api/auth/register"; 
         private readonly JwtService _jwtService;
         public RegistrationPage(JwtService jwtService)
         {
             InitializeComponent();
             _jwtService = jwtService;
         }
-
+        private void GoToLoginPage_Click(object sender, RoutedEventArgs e)
+        {
+            // Переход на страницу входа
+            NavigationService.Navigate(new LoginPage(_jwtService));
+        }
         private async void RegisterButton_Click(object sender, RoutedEventArgs e)
         {
             // Получаем введенные данные пользователя

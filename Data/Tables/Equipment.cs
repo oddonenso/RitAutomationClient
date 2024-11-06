@@ -19,13 +19,13 @@ namespace Data.Tables
         [MaxLength(150)]
         public string Name { get; set; } = string.Empty;
 
-        [MaxLength(50)]
-        public string Status { get; set; } = string.Empty;
+        [ForeignKey("Status")]
+        public int StatusId { get; set; }
 
-        [MaxLength(50)]
-        public string Type { get; set; } = string.Empty;
-
-        // Связь с EquipmentStatus
+        [ForeignKey("Type")]
+        public int TypeId { get; set; } 
+        public Type Type { get; set; } = null!;
+        public Status Status { get; set; } = null!;
         public ICollection<EquipmentStatus> EquipmentStatuses { get; set; } = null!;
     }
 }

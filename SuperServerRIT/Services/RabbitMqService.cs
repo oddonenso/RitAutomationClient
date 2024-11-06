@@ -24,10 +24,8 @@ namespace SuperServerRIT.Services
             _connection = factory.CreateConnection();
             _channel = _connection.CreateModel();
 
-            // Декларация очереди для статуса оборудования
+           
             _channel.QueueDeclare(queue: "equipment_status", durable: false, exclusive: false, autoDelete: false, arguments: null);
-
-            // Декларация очереди для оповещений
             _channel.QueueDeclare(queue: "alert_queue", durable: false, exclusive: false, autoDelete: false, arguments: null);
         }
 
@@ -45,6 +43,7 @@ namespace SuperServerRIT.Services
                 Console.WriteLine($"Error sending message to RabbitMQ: {ex.Message}");
             }
         }
+
 
         public void ReceiveMessages(Func<string, Task> onMessageReceivedAsync)
         {
@@ -105,6 +104,7 @@ namespace SuperServerRIT.Services
                 Console.WriteLine($"Error sending alert message to RabbitMQ: {ex.Message}");
             }
         }
+
         public void Dispose()
         {
             if (_channel?.IsOpen ?? false)

@@ -36,7 +36,7 @@ namespace SuperServerRIT.Handlers
                     throw new Exception("Неверный email или пароль.");
                 }
 
-                if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
+                if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
                 {
                     Console.WriteLine("Неверный пароль.");
                     throw new Exception("Неверный email или пароль.");

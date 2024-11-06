@@ -29,7 +29,7 @@ namespace SuperServerRIT.Handlers
             if (request.Temperature.HasValue) equipmentStatus.Temperature = request.Temperature.Value;
             if (request.Pressure.HasValue) equipmentStatus.Pressure = request.Pressure.Value;
             if (!string.IsNullOrEmpty(request.Location)) equipmentStatus.Location = request.Location;
-            if (!string.IsNullOrEmpty(request.Status)) equipmentStatus.Status = request.Status;
+           // if (!string.IsNullOrEmpty(request.Status)) equipmentStatus.Status = request.Status;
 
             await _connection.SaveChangesAsync();
 

@@ -21,6 +21,9 @@ namespace Data
         public DbSet<EquipmentStatus> EquipmentStatus { get; set; }
         public DbSet<Notification> Notification { get; set; }
 
+        public DbSet<Status> Status { get; set; }
+        public DbSet<Tables.Type> Type { get; set; }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseNpgsql("Server=localhost;Port=5432;User Id=postgres;Password=111;Database=RitAutomation;");

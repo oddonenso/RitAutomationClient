@@ -32,7 +32,7 @@ namespace RitAutomationClient.Views
 
         private async void LoginButton_Click(object sender, RoutedEventArgs e)
         {
-            // Проверка состояния блокировки
+            
             if (isLocked)
             {
                 StatusMessageTextBlock.Text = "Попробуйте снова позже.";
@@ -99,13 +99,11 @@ namespace RitAutomationClient.Views
 
         private async Task HandleFailedLoginAttempt(HttpResponseMessage response)
         {
-            // Увеличиваем счетчик попыток
             loginAttempts++;
 
             var errorResponse = await response.Content.ReadAsStringAsync();
             StatusMessageTextBlock.Text = $"Ошибка авторизации: {errorResponse}";
 
-            // Если достигли 3 попыток, блокируем поля
             if (loginAttempts >= 3)
             {
                 StatusMessageTextBlock.Text = "Вы превысили количество попыток. Попробуйте снова через 10 секунд.";

@@ -39,7 +39,7 @@ namespace SuperServerRIT.Handlers
                 FirstName = userDto.FirstName,
                 LastName = userDto.LastName,
                 Email = userDto.Email,
-                Password = hashedPassword,
+                PasswordHash = hashedPassword,
                 RoleID = role.RoleID,
                 CreatedAt = DateTime.UtcNow
             };
