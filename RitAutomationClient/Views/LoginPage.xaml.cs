@@ -32,7 +32,6 @@ namespace RitAutomationClient.Views
 
         private async void LoginButton_Click(object sender, RoutedEventArgs e)
         {
-            // Проверка состояния блокировки
             if (isLocked)
             {
                 StatusMessageTextBlock.Text = "Попробуйте снова позже.";
@@ -85,13 +84,13 @@ namespace RitAutomationClient.Views
                     await HandleFailedLoginAttempt(response);
                 }
             }
-            catch (JsonException jsonEx)
+            catch (JsonException)
             {
-                StatusMessageTextBlock.Text = $"Ошибка JSON: {jsonEx.ToString()}";
+                StatusMessageTextBlock.Text = $"Ошибка JSON";
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                StatusMessageTextBlock.Text = $"Ошибка авторизации: {ex.ToString()}";
+                StatusMessageTextBlock.Text = $"Ошибка авторизации";
             }
         }
 

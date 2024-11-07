@@ -56,6 +56,15 @@
                 <!-- Сообщение о статусе регистрации -->
                 <TextBlock x:Name="StatusMessageTextBlock" FontSize="14" Foreground="Gray"
                            HorizontalAlignment="Center" Margin="0,20,0,0"/>
+
+                <!-- Гиперссылка для перехода на страницу входа -->
+                <TextBlock HorizontalAlignment="Center" Margin="10,20,0,0">
+                    <Run Text="Уже зарегистрированы?" />
+                    <Hyperlink Click="GoToLoginPage_Click">
+                        <Run Text=" Войти" Foreground="#D32F2F" />
+                    </Hyperlink>
+                </TextBlock>
+
             </StackPanel>
         </Border>
     </Grid>

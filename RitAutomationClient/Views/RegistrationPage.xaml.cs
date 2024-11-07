@@ -12,17 +12,20 @@ namespace RitAutomationClient.Views
 {
     public partial class RegistrationPage : Page
     {
-        private static readonly string ApiUrl = "https://localhost:7183/api/auth/register"; // Замените на URL вашего API
+        private static readonly string ApiUrl = "https://localhost:7183/api/auth/register";
         private readonly JwtService _jwtService;
         public RegistrationPage(JwtService jwtService)
         {
             InitializeComponent();
             _jwtService = jwtService;
         }
-
+        private void GoToLoginPage_Click(object sender, RoutedEventArgs e)
+        {
+            
+            NavigationService.Navigate(new LoginPage(_jwtService));
+        }
         private async void RegisterButton_Click(object sender, RoutedEventArgs e)
         {
-            // Получаем введенные данные пользователя
             var firstName = FirstNameTextBox.Text;
             var lastName = LastNameTextBox.Text;
             var email = EmailTextBox.Text;
@@ -62,7 +65,6 @@ namespace RitAutomationClient.Views
             {
                 using var httpClient = new HttpClient();
 
-                // Отправляем POST-запрос на сервер
                 var response = await httpClient.PostAsync(ApiUrl, content);
 
                 if (response.IsSuccessStatusCode)
@@ -70,7 +72,6 @@ namespace RitAutomationClient.Views
                     MessageBox.Show("Регистрация прошла успешно!");
                     StatusMessageTextBlock.Text = "Регистрация успешна!";
 
-                    // Переход на страницу авторизации
                     NavigationService.Navigate(new LoginPage(_jwtService));
                 }
                 else
@@ -80,9 +81,9 @@ namespace RitAutomationClient.Views
                     StatusMessageTextBlock.Text = $"Ошибка регистрации: {responseBody}";
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                StatusMessageTextBlock.Text = $"Ошибка: {ex.Message}";
+                StatusMessageTextBlock.Text = $"Ошибка";
             }
         }
     }

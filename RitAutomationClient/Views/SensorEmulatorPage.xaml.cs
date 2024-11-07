@@ -58,12 +58,10 @@ namespace RitAutomationClient.Views
 
                 if (equipmentList != null && equipmentList.Count > 0)
                 {
-                    // Очищаем предыдущие данные
                     EquipmentStatusComboBox.ItemsSource = null;
                     UpdateEquipmentComboBox.ItemsSource = null;
                     DeleteEquipmentComboBox.ItemsSource = null;
 
-                    // Назначаем новый список
                     EquipmentStatusComboBox.ItemsSource = equipmentList;
                     UpdateEquipmentComboBox.ItemsSource = equipmentList;
                     DeleteEquipmentComboBox.ItemsSource = equipmentList;
@@ -83,12 +81,20 @@ namespace RitAutomationClient.Views
             }
         }
 
+        private void LogoutButton_Click(object sender, RoutedEventArgs e)
+        {
+            var result = MessageBox.Show("Вы уверены, что хотите выйти?", "Подтверждение выхода", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
+            if (result == MessageBoxResult.Yes)
+            {
+                NavigationService.Navigate(new LoginPage(_jwtService));
+            }
+        }
         private async void SubmitButton_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrWhiteSpace(AddEquipmentNameTextBox.Text) ||
-                string.IsNullOrWhiteSpace(AddEquipmentTypeTextBox.Text) ||
-                string.IsNullOrWhiteSpace(AddEquipmentStatusTextBox.Text))
+                string.IsNullOrWhiteSpace(AddEquipmentTypeComboBox.Text) ||
+                string.IsNullOrWhiteSpace(AddEquipmentStatusComboBox.Text))
             {
                 MessageBox.Show("Пожалуйста, заполните все поля.");
                 return;
@@ -97,8 +103,8 @@ namespace RitAutomationClient.Views
             var newEquipment = new CreateEquipmentCommand
             {
                 Name = AddEquipmentNameTextBox.Text.Trim(),
-                Type = AddEquipmentTypeTextBox.Text.Trim(),
-                Status = AddEquipmentStatusTextBox.Text.Trim()
+                Type = AddEquipmentTypeComboBox.Text.Trim(),
+                Status = AddEquipmentStatusComboBox.Text.Trim()
             };
 
             using (var client = new HttpClient())
@@ -117,6 +123,7 @@ namespace RitAutomationClient.Views
                     {
                         MessageBox.Show("Оборудование успешно добавлено.");
                         LoadEquipmentList();
+                        ClearEquipmentInput();
                     }
                     else
                     {
@@ -138,10 +145,9 @@ namespace RitAutomationClient.Views
                 try
                 {
                     selectedEquipment.Name = UpdateEquipmentNameTextBox.Text.Trim();
-                    selectedEquipment.Type = UpdateEquipmentTypeTextBox.Text.Trim();
-                    selectedEquipment.Status = UpdateEquipmentStatusTextBox.Text.Trim();
+                    selectedEquipment.Type = UpdateEquipmentTypeComboBox.Text.Trim();
+                    selectedEquipment.Status = UpdateEquipmentStatusComboBox.Text.Trim();
 
-                    // Создаем команду для обновления
                     var patchDoc = new JsonPatchDocument<Equipment>();
                     if (!string.IsNullOrEmpty(selectedEquipment.Name))
                         patchDoc.Replace(e => e.Name, selectedEquipment.Name);
@@ -150,13 +156,19 @@ namespace RitAutomationClient.Views
                     if (!string.IsNullOrEmpty(selectedEquipment.Status))
                         patchDoc.Replace(e => e.Status, selectedEquipment.Status);
 
-                    // Используем локально инициализированный HttpClient
                     using (var client = new HttpClient { BaseAddress = new Uri("https://localhost:7183/api/") })
                     {
                         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _jwtService.GetTokenFromStorage());
+
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+                        };
+
                         var request = new HttpRequestMessage(HttpMethod.Patch, $"Equipment/{selectedEquipment.EquipmentID}")
                         {
-                            Content = new StringContent(JsonSerializer.Serialize(patchDoc), Encoding.UTF8, "application/json")
+                            Content = new StringContent(JsonSerializer.Serialize(patchDoc, options), Encoding.UTF8, "application/json")
                         };
 
                         var response = await client.SendAsync(request);
@@ -165,20 +177,22 @@ namespace RitAutomationClient.Views
                         {
                             MessageBox.Show("Оборудование успешно обновлено.");
                             LoadEquipmentList();
+                            ClearEquipmentInput();
                         }
                         else
                         {
                             var errorMessage = await response.Content.ReadAsStringAsync();
-                            MessageBox.Show($"Ошибка обновления оборудования: {response.StatusCode} - {errorMessage}");
+                            MessageBox.Show($"Ошибка обновления оборудования:");
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Ошибка обновления оборудования: " + ex.Message);
+                    MessageBox.Show("Ошибка обновления оборудования: ");
                 }
             }
         }
+
 
 
 
@@ -195,7 +209,7 @@ namespace RitAutomationClient.Views
                     if (response.IsSuccessStatusCode)
                     {
                         MessageBox.Show("Оборудование успешно удалено.");
-                        LoadEquipmentList();  // Перезагружаем данные
+                        LoadEquipmentList();  
                     }
                     else
                     {
@@ -211,20 +225,7 @@ namespace RitAutomationClient.Views
         }
 
 
-        private void MapOptionsComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (MapOptionsComboBox.SelectedItem is ComboBoxItem selectedItem)
-            {
-                if (selectedItem.Content.ToString() == "Показать карту")
-                {
-                    SensorMap.Visibility = Visibility.Visible;
-                }
-                else
-                {
-                    SensorMap.Visibility = Visibility.Collapsed;
-                }
-            }
-        }
+      
 
         private void ToggleMapButton_Click(object sender, RoutedEventArgs e)
         {
@@ -391,7 +392,7 @@ namespace RitAutomationClient.Views
                     {
                         var errorMessage = await response.Content.ReadAsStringAsync();
 
-                        // Попытка вывести детализированную информацию об ошибке
+                       
                         try
                         {
                             var errorDetails = JsonSerializer.Deserialize<Dictionary<string, string>>(errorMessage);
@@ -417,7 +418,12 @@ namespace RitAutomationClient.Views
             }
         }
 
-
+      
+        private void ClearEquipmentInput()
+        {
+            AddEquipmentNameTextBox.Clear();
+            UpdateEquipmentNameTextBox.Clear();
+        }
 
         private void ClearStatusInputs()
         {
@@ -428,10 +434,19 @@ namespace RitAutomationClient.Views
             LocationTextBox.Clear();
         }
 
+        private void AddEquipmentTypeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+
+        }
+
+        private void AddEquipmentStatusComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+
+        }
+
         private string GetCityByCoordinates(double latitude, double longitude)
         {
-            // Метод получения города по координатам с использованием внешнего API
-            return "Город (пример)";
+            return "Город";
         }
     }
 }

@@ -56,6 +56,24 @@ namespace SuperServerRIT.Controllers
         }
 
         /// <summary>
+        /// Получает все статусы оборудования для отображения на карте.
+        /// </summary>
+        /// <returns>Список статусов оборудования с координатами.</returns>
+        [HttpGet("map")]
+        public async Task<IActionResult> GetAllEquipmentStatusesForMap()
+        {
+            var command = new GetAllEquipmentStatusesForMapCommand();
+            var equipmentStatuses = await _mediator.Send(command);
+
+            if (equipmentStatuses == null || equipmentStatuses.Count == 0)
+            {
+                return NotFound("Статусы оборудования не найдены.");
+            }
+
+            return Ok(equipmentStatuses);
+        }
+
+        /// <summary>
         /// Обновляет статус оборудования.
         /// </summary>
         /// <param name="id">Идентификатор статуса оборудования для обновления.</param>

@@ -1,5 +1,4 @@
-﻿
-using Data;
+﻿using Data;
 using Data.Tables;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,7 +22,6 @@ namespace SuperServerRIT.Handlers
         {
             using (var scope = _serviceScopeFactory.CreateScope())
             {
-
                 var dbContext = scope.ServiceProvider.GetRequiredService<Connection>();
                 var equipmentStatus = await dbContext.EquipmentStatus.FindAsync(request.EquipmentStatusID);
 

@@ -7,32 +7,26 @@ using SuperServerRIT.Services;
 using MediatR;
 using SuperServerRIT.Commands;
 using Microsoft.OpenApi.Models;
-using System.Reflection; // Для получения пути к XML-документации
+using System.Reflection; 
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Настройка контекста базы данных
 builder.Services.AddDbContext<Connection>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Настройка MediatR
 builder.Services.AddMediatR(typeof(Program).Assembly);
 
-// Регистрация репозитория
 builder.Services.AddScoped<IEquipmentRepository, EquipmentRepository>();
 
-// Настройка контроллеров
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-// Настройка Swagger с учетом XML-документации
 builder.Services.AddSwaggerGen(c =>
 {
-    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml"; // Получаем имя файла на основе имени сборки
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml"; 
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
 
-    // Проверяем, существует ли файл
     if (File.Exists(xmlPath))
     {
         c.IncludeXmlComments(xmlPath);
@@ -40,11 +34,9 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "SuperServerRitAPI V1", Version = "v1" });
 });
 
-// Регистрация сервисов для RabbitMQ
 builder.Services.AddSingleton<RabbitMqService>();
 builder.Services.AddHostedService<RabbitMqHostedService>();
 
-// Настройка аутентификации JWT
 var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"]);
 
 builder.Services.AddAuthentication(options =>
@@ -69,10 +61,8 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Регистрация сервиса для JWT
 builder.Services.AddScoped<JwtService>();
 
-// Настройка CORS для локального WPF-клиента
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowWpfClient", builder =>
@@ -84,7 +74,6 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Конфигурация для среды разработки
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -95,7 +84,6 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// Подключаем CORS
 app.UseCors("AllowWpfClient");
 
 app.UseHttpsRedirection();
