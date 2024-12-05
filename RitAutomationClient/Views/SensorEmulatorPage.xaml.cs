@@ -284,7 +284,6 @@ namespace RitAutomationClient.Views
         {
             decimal temperature, pressure, latitude, longitude;
 
-            // Проверка и парсинг значений
             if (!decimal.TryParse(TemperatureTextBox.Text, out temperature))
             {
                 MessageBox.Show("Некорректное значение температуры.");
@@ -319,7 +318,6 @@ namespace RitAutomationClient.Views
             bool isTemperatureOutOfRange = temperature > 100 || temperature < -50;
             bool isPressureOutOfRange = pressure > 300 || pressure < 50;
 
-            // Обработка случаев некорректных значений температуры или давления
             if (isTemperatureOutOfRange || isPressureOutOfRange)
             {
                 var alertMessage = new AlertMessage
